@@ -1,0 +1,8 @@
+{"query_id": "q_001", "query": "slow burn rivals to lovers with found family", "target_tropes": ["slow burn", "rivals to lovers", "found family"], "target_themes": [], "target_genres": [], "exclude_warnings": []}
+{"query_id": "q_002", "query": "dark academia mystery with political intrigue and forbidden magic", "target_tropes": ["forbidden magic"], "target_themes": ["dark academia", "political intrigue"], "target_genres": ["mystery"], "exclude_warnings": []}
+{"query_id": "q_003", "query": "found family adventure, no major character death", "target_tropes": ["found family"], "target_themes": [], "target_genres": ["adventure"], "exclude_warnings": ["major character death"]}
+{"query_id": "q_004", "query": "enemies to lovers with mutual pining", "target_tropes": ["enemies to lovers", "mutual pining"], "target_themes": [], "target_genres": [], "exclude_warnings": []}
+{"query_id": "q_005", "query": "kingdom building fantasy without graphic violence", "target_tropes": ["kingdom building"], "target_themes": [], "target_genres": ["fantasy"], "exclude_warnings": ["graphic violence"]}
+{"query_id": "q_006", "query": "time loop coming of age story", "target_tropes": ["time loop"], "target_themes": ["coming of age"], "target_genres": [], "exclude_warnings": []}
+{"query_id": "q_007", "query": "academy setting with betrayal and redemption", "target_tropes": ["academy setting"], "target_themes": ["betrayal", "redemption"], "target_genres": [], "exclude_warnings": []}
+{"query_id": "q_008", "query": "hurt comfort found family healing story", "target_tropes": ["hurt/comfort", "found family"], "target_themes": ["healing"], "target_genres": [], "exclude_warnings": ["abuse"]}
