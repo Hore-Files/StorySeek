@@ -28,11 +28,8 @@ def health() -> dict:
 
 @app.post("/search", response_model=SearchResponse)
 def search(req: SearchRequest) -> SearchResponse:
-    if req.mode != "bm25":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Mode '{req.mode}' not implemented yet. Use 'bm25'.",
-        )
+    # Only BM25 is implemented for this checkpoint; SearchMode is narrowed at
+    # the schema level so the API contract stays honest about supported modes.
     body = build_bm25_query(req)
     client = get_client()
     res = client.search(index=get_settings().opensearch_index, body=body)
