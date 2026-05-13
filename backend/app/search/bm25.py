@@ -34,10 +34,12 @@ def build_bm25_query(req: SearchRequest) -> dict:
         filter_clauses.append({"terms": {"format": f.formats}})
     if f.genres:
         filter_clauses.append({"terms": {"genres": f.genres}})
-    if f.tropes:
-        filter_clauses.append({"terms": {"tropes": f.tropes}})
-    if f.themes:
-        filter_clauses.append({"terms": {"themes": f.themes}})
+    # Tropes / themes are advertised in the UI as "must include": every selected
+    # value must be present on the work, so use one `term` clause per value.
+    for trope in f.tropes:
+        filter_clauses.append({"term": {"tropes": trope}})
+    for theme in f.themes:
+        filter_clauses.append({"term": {"themes": theme}})
     if f.statuses:
         filter_clauses.append({"terms": {"status": f.statuses}})
     if f.length_buckets:

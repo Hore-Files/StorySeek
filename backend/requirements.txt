@@ -6,3 +6,6 @@ pydantic-settings>=2.1
 python-dotenv>=1.0
 requests>=2.31
 streamlit>=1.30
+
+# dev
+pytest>=7
