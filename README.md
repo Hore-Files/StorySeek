@@ -1,6 +1,6 @@
 # StorySeek
 
-StorySeek is a semantic search engine for discovery focused on literary fiction. Instead of relying on exact titles, authors, or rigid tag systems, it helps users discover stories through natural-language descriptions of themes, moods, tropes, and character dynamics.
+StorySeek is a trope-aware semantic search engine for fanfiction and transformative fiction archives. Inspired by how readers search on platforms like AO3 and Wattpad. Instead of relying on exact titles, authors, or rigid tag systems, it helps users discover stories through natural-language descriptions of themes, moods, tropes, and character dynamics.
 
 ## Team Member:
 - Muhammad Farid Hasabi (2306152512)
@@ -14,9 +14,7 @@ This repository is our deliverable for the **Information Retrieval / Web Search*
 
 ## Problem
 
-Existing fiction discovery relies on exact titles, authors, or hand-picked tags. Readers usually know what *kind* of story they want (`"slow burn rivals to lovers with found family, no major character death"`) but not the exact terms a catalog uses. StorySeek is a search/discovery layer over a fiction catalog that matches on meaning, themes, and metadata — not just keywords.
-
-We are **not** building a reading platform. We are building a retrieval system.
+Existing fiction discovery relies on exact titles, authors, or hand-picked tags. Readers usually know what kind of story they want (`"slow burn rivals to lovers with found family, no major character death"`) but not the exact terms a catalog uses. StorySeek is a search/discovery layer over a fiction catalog that matches not just on keywords, but also meaning, themes, and metadata.
 
 ## MVP scope (this checkpoint)
 
@@ -105,8 +103,7 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `OPENSEARCH_INDEX` | `storyseek_works` | Index name |
 | `BACKEND_URL` | `http://localhost:8000` | Used by Streamlit |
 
-## Notes for graders
-
-- Retrieval logic is OpenSearch DSL + Python — explainable as an IR system, not an LLM wrapper.
+## Notes
+- Retrieval logic is OpenSearch DSL + Python. Explainable as an IR system, not an LLM wrapper.
 - LLMs are out of scope for the core retrieval path. Future RAG over results is optional.
 - No copyrighted sources are scraped. The current dataset is synthetic; future ingest will use Project Gutenberg / Standard Ebooks metadata under their stated licenses.
