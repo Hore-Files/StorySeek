@@ -13,6 +13,7 @@ INDEX_MAPPING: dict = {
         "index": {
             "number_of_shards": 1,
             "number_of_replicas": 0,
+            "knn": True,
         },
         "analysis": {
             "analyzer": {
@@ -38,10 +39,15 @@ INDEX_MAPPING: dict = {
             "length_bucket": {"type": "keyword"},
             "language": {"type": "keyword"},
             "source": {"type": "keyword"},
-            # TODO(dense): add
-            # "embedding": {"type": "knn_vector", "dimension": 384,
-            #               "method": {"name": "hnsw", "engine": "lucene",
-            #                          "space_type": "cosinesimil"}}
+            "embedding": {
+                "type": "knn_vector",
+                "dimension": 384,
+                "method": {
+                    "name": "hnsw",
+                    "engine": "lucene",
+                    "space_type": "cosinesimil",
+                },
+            },
         }
     },
 }
