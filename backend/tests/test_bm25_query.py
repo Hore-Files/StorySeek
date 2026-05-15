@@ -87,4 +87,4 @@ def test_pagination_offsets():
 
 def test_combined_text_excluded_from_source():
     body = build_bm25_query(SearchRequest(query="a"))
-    assert body["_source"]["excludes"] == ["combined_text"]
+    assert body["_source"]["excludes"] == ["combined_text", "embedding"]

@@ -7,6 +7,7 @@ from .config import get_settings
 from .opensearch_client import get_client
 from .schemas import SearchHit, SearchRequest, SearchResponse, Work
 from .search.bm25 import build_bm25_query
+from .search.dense import build_dense_query
 from .search.explain import explain_hit
 
 app = FastAPI(title="StorySeek API", version="0.1.0")
@@ -28,14 +29,21 @@ def health() -> dict:
 
 @app.post("/search", response_model=SearchResponse)
 def search(req: SearchRequest) -> SearchResponse:
-    # Only BM25 is implemented for this checkpoint; SearchMode is narrowed at
-    # the schema level so the API contract stays honest about supported modes.
-    body = build_bm25_query(req)
+    if req.mode == "bm25":
+        body = build_bm25_query(req)
+    else:
+        body = build_dense_query(req)
     client = get_client()
     res = client.search(index=get_settings().opensearch_index, body=body)
-    total = res["hits"]["total"]["value"]
+    if req.mode == "bm25":
+        total = res["hits"]["total"]["value"]
+        raw_hits = res["hits"]["hits"]
+    else:
+        offset = (req.page - 1) * req.size
+        raw_hits = res["hits"]["hits"][offset : offset + req.size]
+        total = len(res["hits"]["hits"])
     hits: list[SearchHit] = []
-    for h in res["hits"]["hits"]:
+    for h in raw_hits:
         work = Work.model_validate(h["_source"])
         hits.append(
             SearchHit(
@@ -82,7 +90,7 @@ def similar(work_id: str, size: int = 10) -> SearchResponse:
                 "min_doc_freq": 1,
             }
         },
-        "_source": {"excludes": ["combined_text"]},
+        "_source": {"excludes": ["combined_text", "embedding"]},
     }
     try:
         res = client.search(index=index, body=body)

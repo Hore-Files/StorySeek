@@ -1,41 +1,17 @@
+"""Dense retrieval query builder (kNN)."""
 from __future__ import annotations
 
+from ..embeddings import embed_query
 from ..schemas import SearchRequest
 
 
-def build_bm25_query(req: SearchRequest) -> dict:
-    must: list[dict] = []
-    if req.query.strip():
-        must.append(
-            {
-                "multi_match": {
-                    "query": req.query,
-                    "fields": [
-                        "title^3",
-                        "summary^2",
-                        "genres^1.5",
-                        "themes^1.5",
-                        "tropes^2",
-                        "relationship_dynamics",
-                        "combined_text",
-                    ],
-                    "type": "best_fields",
-                    "operator": "or",
-                    "tie_breaker": 0.2,
-                }
-            }
-        )
-    else:
-        must.append({"match_all": {}})
-
+def build_dense_query(req: SearchRequest) -> dict:
     filter_clauses: list[dict] = []
     f = req.filters
     if f.formats:
         filter_clauses.append({"terms": {"format": f.formats}})
     if f.genres:
         filter_clauses.append({"terms": {"genres": f.genres}})
-    # Tropes / themes are advertised in the UI as "must include": every selected
-    # value must be present on the work, so use one `term` clause per value.
     for trope in f.tropes:
         filter_clauses.append({"term": {"tropes": trope}})
     for theme in f.themes:
@@ -53,9 +29,25 @@ def build_bm25_query(req: SearchRequest) -> dict:
     if req.exclude_warnings:
         must_not.append({"terms": {"content_warnings": req.exclude_warnings}})
 
-    body: dict = {
-        "from": (req.page - 1) * req.size,
-        "size": req.size,
+    k = req.page * req.size
+    if req.query.strip():
+        vector = embed_query(req.query)
+        must = [
+            {
+                "knn": {
+                    "embedding": {
+                        "vector": vector,
+                        "k": k,
+                        "num_candidates": max(100, k * 2),
+                    }
+                }
+            }
+        ]
+    else:
+        must = [{"match_all": {}}]
+
+    return {
+        "size": k,
         "query": {
             "bool": {
                 "must": must,
@@ -65,4 +57,3 @@ def build_bm25_query(req: SearchRequest) -> dict:
         },
         "_source": {"excludes": ["combined_text", "embedding"]},
     }
-    return body

@@ -8,10 +8,8 @@ Format = Literal["novel", "short_story", "fanfic_style", "manga", "webnovel"]
 Status = Literal["Complete", "Ongoing", "Hiatus"]
 Length = Literal["short", "medium", "long"]
 Audience = Literal["General", "Teen", "Mature"]
-# Modes that the backend can actually serve today. Dense and hybrid are
-# documented in docs/architecture.md as planned; they are not part of the
-# request contract so the OpenAPI schema stays honest.
-SearchMode = Literal["bm25"]
+# Modes that the backend can serve today (hybrid is still planned).
+SearchMode = Literal["bm25", "dense"]
 
 
 class Work(BaseModel):
