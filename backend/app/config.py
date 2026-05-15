@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     opensearch_username: str | None = None
     opensearch_password: str | None = None
 
+    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+
     backend_url: str = "http://localhost:8000"
 
     data_path: Path = (
