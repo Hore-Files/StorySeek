@@ -106,9 +106,9 @@ def main() -> None:
         st.header("Filters")
         mode = st.radio(
             "Retrieval mode",
-            options=["BM25", "Dense (coming soon)", "Hybrid (coming soon)"],
+            options=["BM25", "Dense", "Hybrid (coming soon)"],
             index=0,
-            help="Only BM25 is wired up in this checkpoint.",
+            help="Dense retrieval is available; hybrid is still coming soon.",
         )
         sel_formats = st.multiselect("Format", FORMATS)
         sel_genres = st.multiselect("Genres", GENRES)
@@ -126,12 +126,14 @@ def main() -> None:
         placeholder="dark academia mystery with political intrigue and forbidden magic",
     )
 
-    if mode != "BM25":
-        st.info("Dense and Hybrid modes are coming soon. Falling back to BM25.")
+    if mode == "Hybrid (coming soon)":
+        st.info("Hybrid mode is coming soon. Falling back to BM25.")
+
+    mode_value = "dense" if mode == "Dense" else "bm25"
 
     payload = {
         "query": query,
-        "mode": "bm25",
+        "mode": mode_value,
         "page": 1,
         "size": size,
         "exclude_warnings": sel_exclude,
