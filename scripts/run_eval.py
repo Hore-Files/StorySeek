@@ -33,9 +33,11 @@ def _load_queries() -> list[dict]:
     return [json.loads(line) for line in QUERIES.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def _load_qrels() -> dict[str, dict[str, int]]:
+def _load_qrels(path: Path) -> dict[str, dict[str, int]]:
     rels: dict[str, dict[str, int]] = {}
-    with QRELS.open("r", encoding="utf-8", newline="") as f:
+    if not path.exists():
+        return rels
+    with path.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             rels.setdefault(row["query_id"], {})[row["work_id"]] = int(row["relevance"])
@@ -97,13 +99,14 @@ def run_query(backend: str, query: dict, size: int) -> list[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run StorySeek retrieval eval.")
     parser.add_argument("--backend", default=os.environ.get("BACKEND_URL", "http://localhost:8000"))
+    parser.add_argument("--qrels", type=Path, default=QRELS, help="Path to qrels CSV file.")
     parser.add_argument("--k-ndcg", type=int, default=10)
     parser.add_argument("--k-mrr", type=int, default=10)
     parser.add_argument("--k-recall", type=int, default=20)
     args = parser.parse_args()
 
     queries = _load_queries()
-    qrels = _load_qrels()
+    qrels = _load_qrels(args.qrels)
 
     per_query: list[dict] = []
     sums = {"ndcg": 0.0, "mrr": 0.0, "recall": 0.0}
