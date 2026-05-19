@@ -16,34 +16,49 @@ This repository is our deliverable for the **Information Retrieval / Web Search*
 
 Existing fiction discovery relies on exact titles, authors, or hand-picked tags. Readers usually know what kind of story they want (`"slow burn rivals to lovers with found family, no major character death"`) but not the exact terms a catalog uses. StorySeek is a search/discovery layer over a fiction catalog that matches not just on keywords, but also meaning, themes, and metadata.
 
-## MVP scope (this checkpoint)
+## MVP scope
 
 - Unified `work` schema and synthetic dataset generator
 - FastAPI backend on top of OpenSearch
 - BM25 keyword retrieval with multi-field boosting
+- Dense retrieval with sentence-transformers (`all-MiniLM-L6-v2`) + OpenSearch `knn_vector`
+- Hybrid BM25 + dense ranking with Reciprocal Rank Fusion (RRF)
 - Faceted filters (format, genre, status, length, audience rating, tropes)
 - Hard constraint: exclude content warnings
 - Rule-based "why this matched" explanation
-- `/similar/{work_id}` via OpenSearch `more_like_this` (placeholder for vector kNN)
+- `/similar/{work_id}` via OpenSearch `more_like_this`
 - Streamlit UI with search bar, filters, mode selector, result cards
 - Single-node OpenSearch via `docker compose`
+- Evaluation harness for nDCG@10, MRR@10, and Recall@20
+- Lightweight API load-test script
 
-### Roadmap (next checkpoints)
+### Dataset
 
-- Dense retrieval with sentence-transformers (`all-MiniLM-L6-v2`) + OpenSearch `knn_vector`
-- Hybrid BM25 + dense with Reciprocal Rank Fusion (RRF)
-- Evaluation harness: nDCG@10, MRR@10, Recall@20 over `data/eval/qrels.csv`
-- Load testing (Locust/k6), tests
-- Real dataset (Project Gutenberg / Standard Ebooks metadata)
-- Hosted demo + YouTube walkthrough
+The committed dataset is `data/sample/works.jsonl` with 300 deterministic synthetic records. This is the primary final dataset because the project needs trope-aware metadata, relationship dynamics, audience ratings, and content warnings that public-domain book catalogs usually do not provide.
+
+To regenerate or expand it:
+
+```bash
+python scripts/generate_synthetic_data.py --count 1000 --seed 42
+```
+
+Real/public metadata from Project Gutenberg or Standard Ebooks is documented as a future dataset option in `docs/data_schema.md`.
+
+### Final-deliverable roadmap
+
+- End-to-end smoke run against a live OpenSearch cluster
+- Evaluation results in `reports/metrics.json` and `reports/comparison.md`
+- Load-test results in `reports/load_test_results.md`
+- YouTube demo video, max 15 minutes
+- Final English documentation pass
 
 ## Architecture
 
 ```
 +-------------+        +---------------+        +---------------------+
 |  Streamlit  | -----> |   FastAPI     | -----> |     OpenSearch      |
-|     UI      | <----- |   backend     | <----- |   (BM25 today,      |
-+-------------+        +---------------+        |    knn_vector next) |
+|     UI      | <----- |   backend     | <----- |   (BM25, dense,     |
++-------------+        +---------------+        |    hybrid search)   |
                                                 +---------------------+
 ```
 
