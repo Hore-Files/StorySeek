@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from opensearchpy.exceptions import NotFoundError, OpenSearchException
 
 from .config import get_settings
@@ -12,6 +13,20 @@ from .search.explain import explain_hit
 from .search.hybrid import build_hybrid_queries, reciprocal_rank_fusion
 
 app = FastAPI(title="StorySeek API", version="0.1.0")
+
+# Allow React frontend to call this API from the browser (CORS)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
+        "http://localhost:8501",  # Streamlit (legacy)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
