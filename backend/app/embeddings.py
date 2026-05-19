@@ -12,7 +12,10 @@ from .config import get_settings
 @lru_cache(maxsize=1)
 def _get_model() -> SentenceTransformer:
     settings = get_settings()
-    return SentenceTransformer(settings.embedding_model_name)
+    try:
+        return SentenceTransformer(settings.embedding_model_name, local_files_only=True)
+    except Exception:
+        return SentenceTransformer(settings.embedding_model_name)
 
 
 def embed_texts(texts: Iterable[str]) -> list[list[float]]:

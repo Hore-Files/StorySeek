@@ -32,28 +32,29 @@ def build_dense_query(req: SearchRequest) -> dict:
     k = req.page * req.size
     if req.query.strip():
         vector = embed_query(req.query)
-        must = [
-            {
-                "knn": {
-                    "embedding": {
-                        "vector": vector,
-                        "k": k,
-                        "num_candidates": max(100, k * 2),
-                    }
+        knn_body: dict = {
+            "vector": vector,
+            "k": k,
+        }
+        if filter_clauses or must_not:
+            knn_body["filter"] = {
+                "bool": {
+                    "filter": filter_clauses,
+                    "must_not": must_not,
                 }
             }
-        ]
+        query = {"knn": {"embedding": knn_body}}
     else:
-        must = [{"match_all": {}}]
-
-    return {
-        "size": k,
-        "query": {
+        query = {
             "bool": {
-                "must": must,
+                "must": [{"match_all": {}}],
                 "filter": filter_clauses,
                 "must_not": must_not,
             }
-        },
+        }
+
+    return {
+        "size": k,
+        "query": query,
         "_source": {"excludes": ["combined_text", "embedding"]},
     }
