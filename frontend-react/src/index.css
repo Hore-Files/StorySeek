@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  /* === StorySeek Design System Tokens (from Stitch) === */
+
+  /* Colors */
+  --color-primary: #3c6842;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #a5d6a7;
+  --color-on-primary-container: #325e39;
+  --color-background: #f1f4f2;
+  --color-on-background: #1a1c1c;
+  --color-surface: #FFFFFF;
+  --color-surface-dim: #dadada;
+  --color-surface-bright: #f1f4f2;
+  --color-on-surface: #1a1c1c;
+  --color-on-surface-variant: #414940;
+  --color-text-secondary: #718096;
+  --color-border-light: #EDF2F7;
+  --color-accent-sage-deep: #96C289;
+
+  /* Typography */
+  --font-heading: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  /* Border Radius */
+  --radius-2xl: 1.5rem;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-on-surface);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+  }
+}
+
+/* ── Dark Mode Token Overrides ─────────────────────────────────── */
+[data-theme="dark"] {
+  --color-primary: #c0f3c2;
+  --color-on-primary: #0a3817;
+  --color-primary-container: #24502c;
+  --color-on-primary-container: #bdefbe;
+  --color-background: #0d131f;
+  --color-on-background: #dde2f3;
+  --color-surface: #1a202c;
+  --color-surface-dim: #161c27;
+  --color-surface-bright: #333946;
+  --color-on-surface: #dde2f3;
+  --color-on-surface-variant: #c1c9be;
+  --color-text-secondary: #8b9389;
+  --color-border-light: #242a36;
+  --color-accent-sage-deep: #a2d3a4;
+}
+
+/* ── Dark Mode: Hardcoded color class overrides ────────────────── */
+[data-theme="dark"] .ss-header {
+  background-color: rgba(13, 19, 31, 0.88) !important;
+}
+[data-theme="dark"] .ss-surface {
+  background-color: #1a202c !important;
+}
+[data-theme="dark"] .ss-surface-low {
+  background-color: #161c27 !important;
+}
+[data-theme="dark"] .ss-filter-open {
+  background: rgba(192,243,194,0.06) !important;
+}
+[data-theme="dark"] .ss-filter-closed {
+  background: #1a202c !important;
+}
+[data-theme="dark"] .ss-filter-panel {
+  background-color: #161c27 !important;
+}
+[data-theme="dark"] .ss-chip-inactive {
+  background-color: #2f3542 !important;
+  border-color: #2f3542 !important;
+  color: #c1c9be !important;
+}
+[data-theme="dark"] .ss-badge {
+  background: rgba(47, 53, 66, 0.95) !important;
+}
+[data-theme="dark"] .ss-hero-section {
+  background-color: #1a202c !important;
+  border-color: rgba(47,53,66,0.5) !important;
+}
+[data-theme="dark"] .ss-card {
+  background-color: #1a202c !important;
+  border-color: #242a36 !important;
+}
+[data-theme="dark"] .ss-pill {
+  background-color: #2f3542 !important;
+  color: #8b9389 !important;
+}
+[data-theme="dark"] .ss-tag-trope {
+  background-color: rgba(192,243,194,0.08) !important;
+  color: #c0f3c2 !important;
+}
+[data-theme="dark"] .ss-tag-theme {
+  background-color: rgba(60, 71, 90, 0.75) !important;
+  color: #bcc7dd !important;
+}
+[data-theme="dark"] .ss-tag-genre {
+  background-color: rgba(47,53,66,0.7) !important;
+  color: #c1c9be !important;
+}
+[data-theme="dark"] .ss-warning {
+  background-color: rgba(146,64,14,0.2) !important;
+  border-color: rgba(180,83,9,0.4) !important;
+  color: #fde68a !important;
+}
+[data-theme="dark"] .ss-warning svg {
+  color: #f59e0b !important;
+}
+[data-theme="dark"] .ss-anchor-card {
+  background-color: #1a202c !important;
+  border-color: #242a36 !important;
+}
+[data-theme="dark"] .ss-btn-page {
+  background-color: #1a202c !important;
+  border-color: #242a36 !important;
+  color: #dde2f3 !important;
+}
+[data-theme="dark"] .ss-select {
+  background-color: #1a202c !important;
+  border-color: #2f3542 !important;
+  color: #dde2f3 !important;
+}
+[data-theme="dark"] .ss-error-box {
+  background-color: rgba(147,0,10,0.2) !important;
+  color: #ffdad6 !important;
+}
+[data-theme="dark"] .ss-image-card {
+  background-color: rgba(26,32,44,0.6) !important;
+  border-color: rgba(47,53,66,0.4) !important;
+}
+[data-theme="dark"] .ss-input-search {
+  background-color: #1a202c !important;
+  border-color: #2f3542 !important;
+}
+[data-theme="dark"] ::placeholder {
+  color: #8b9389 !important;
+}
+
+/* ── Dark Mode: Primary action buttons ────────────────────────── */
+/* In dark mode, primary green (#c0f3c2) is very light → use dark text */
+[data-theme="dark"] .ss-btn-primary {
+  background-color: #c0f3c2 !important;
+  color: #0a3817 !important;
+}
+[data-theme="dark"] .ss-btn-primary:hover {
+  background-color: #a2d3a4 !important;
+  color: #0a3817 !important;
+}
+
+/* ── Dark Mode: Active filter chips ───────────────────────────── */
+/* Active chip bg becomes var(--color-primary) = #c0f3c2 (light) → dark text */
+[data-theme="dark"] .ss-chip-active {
+  color: #0a3817 !important;
+}
+
+/* ── Dark Mode: Active filter badge ───────────────────────────── */
+/* Active badge bg is primary green, needs dark text in dark mode */
+[data-theme="dark"] .ss-filter-badge-active {
+  color: #0a3817 !important;
+}
