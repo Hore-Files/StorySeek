@@ -110,6 +110,14 @@ def alias_targets(alias: str | None = None) -> list[str]:
     return sorted(aliases.keys())
 
 
+def index_exists(name: str) -> bool:
+    return bool(get_client().indices.exists(index=name))
+
+
+def delete_index(name: str) -> None:
+    get_client().indices.delete(index=name)
+
+
 def swap_alias(alias: str, new_index: str) -> None:
     client = get_client()
     actions = [{"remove": {"index": old, "alias": alias}} for old in alias_targets(alias)]

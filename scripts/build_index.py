@@ -20,8 +20,10 @@ from backend.app.config import get_settings  # noqa: E402
 from backend.app.data_loader import bulk_index  # noqa: E402
 from backend.app.opensearch_client import (  # noqa: E402
     alias_targets,
+    delete_index,
     ensure_index,
     get_client,
+    index_exists,
     swap_alias,
     versioned_index_name,
 )
@@ -61,6 +63,15 @@ def main() -> None:
             f"Indexed count mismatch for '{target_index}': bulk reported {n}, count API returned {count}. "
             f"Alias '{alias}' was not changed."
         )
+
+    if index_exists(alias) and alias not in old_targets:
+        if not args.recreate:
+            raise SystemExit(
+                f"Cannot create alias '{alias}' because a legacy index with that name exists. "
+                f"Re-run with --recreate after confirming the new version '{target_index}' should replace it."
+            )
+        delete_index(alias)
+        print(f"Deleted legacy direct index '{alias}' so the search alias can be created.")
 
     swap_alias(alias, target_index)
     print(f"Indexed {n} docs from {path} into '{target_index}'.")
