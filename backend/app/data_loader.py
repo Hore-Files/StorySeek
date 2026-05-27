@@ -51,8 +51,8 @@ def _actions(docs: Iterable[dict], index: str) -> Iterator[dict]:
         yield from flush()
 
 
-def bulk_index(path: Path) -> int:
+def bulk_index(path: Path, index: str | None = None) -> int:
     client = get_client()
-    index = get_settings().opensearch_index
+    index = index or get_settings().search_index
     success, _ = bulk(client, _actions(iter_jsonl(path), index), refresh=True)
     return success

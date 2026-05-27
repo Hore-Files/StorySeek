@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from functools import lru_cache
 
 from opensearchpy import OpenSearch
 
 from .config import get_settings
 
-# Index mapping. `combined_text` is the catch-all field used by `more_like_this`
-# today and (TODO) by the dense `knn_vector` field once embeddings land.
+# Index mapping. `combined_text` feeds BM25 and explanation support; `embedding`
+# feeds dense kNN and hybrid retrieval.
 INDEX_MAPPING: dict = {
     "settings": {
         "index": {
@@ -81,12 +82,36 @@ def get_client() -> OpenSearch:
     )
 
 
-def ensure_index(recreate: bool = False) -> None:
+def versioned_index_name(alias: str | None = None) -> str:
+    base = alias or get_settings().search_index
+    stamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
+    return f"{base}_v{stamp}"
+
+
+def ensure_index(index: str | None = None, recreate: bool = False) -> str:
     client = get_client()
-    index = get_settings().opensearch_index
+    index = index or get_settings().search_index
     exists = client.indices.exists(index=index)
     if exists and recreate:
         client.indices.delete(index=index)
         exists = False
     if not exists:
         client.indices.create(index=index, body=INDEX_MAPPING)
+    return index
+
+
+def alias_targets(alias: str | None = None) -> list[str]:
+    client = get_client()
+    alias = alias or get_settings().search_index
+    try:
+        aliases = client.indices.get_alias(name=alias)
+    except Exception:
+        return []
+    return sorted(aliases.keys())
+
+
+def swap_alias(alias: str, new_index: str) -> None:
+    client = get_client()
+    actions = [{"remove": {"index": old, "alias": alias}} for old in alias_targets(alias)]
+    actions.append({"add": {"index": new_index, "alias": alias}})
+    client.indices.update_aliases(body={"actions": actions})
