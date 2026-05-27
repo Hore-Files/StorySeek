@@ -52,8 +52,9 @@ jobs:
             WEB_PORT=80
             EOF
 
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build opensearch
-            docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm indexer
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d opensearch
+            docker compose -f docker-compose.prod.yml --env-file .env.prod build api indexer frontend
+            docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --build indexer
             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build api frontend
             docker compose -f docker-compose.prod.yml --env-file .env.prod ps
             docker image prune -f
