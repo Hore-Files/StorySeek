@@ -1,59 +1,56 @@
 # Scalability
 
-StorySeek is a **shared-corpus retrieval system**: many users search the same fiction catalog concurrently. The system is designed so that scaling read throughput is independent of dataset growth.
+StorySeek is a shared-corpus retrieval system: many users search the same fiction catalog concurrently. The system is designed so read throughput can scale independently from dataset growth.
 
 ## Concurrency model
 
-- **Stateless backend.** Each FastAPI process holds only a singleton OpenSearch client. Any request can be served by any replica. Add backend replicas behind a load balancer to scale request handling linearly.
+- **Stateless backend.** Each FastAPI process holds only an OpenSearch client and an embedding model cache. Any request can be served by any replica.
 - **Single source of truth in OpenSearch.** No per-user catalog state lives in the API process.
-- **No login / user state in MVP.** Removes a class of horizontal-scaling blockers.
+- **No login or user state in the MVP.** This keeps horizontal scaling simple.
 
-## Index throughput
+## OpenSearch scaling
 
-OpenSearch handles read concurrency via shards and replicas:
+OpenSearch handles read concurrency with shards and replicas:
 
-- **Primary shards** partition the corpus; each shard can serve queries in parallel.
-- **Replica shards** serve additional concurrent reads of the same data, and provide failover.
-- Tuning for tonight's MVP: 1 primary, 0 replicas (single node). Production target: 3 primaries, 1–2 replicas, sized to RAM-fit hot shards.
+- Primary shards partition the corpus and can serve queries in parallel.
+- Replica shards serve additional reads and provide failover.
+- Local MVP: 1 primary, 0 replicas on a single node.
+- Production target: multiple primaries, 1-2 replicas, and hot shards sized to fit memory.
 
-## Filter pushdown reduces work
+## Filter pushdown
 
-Facet filters (`format`, `genres`, `status`, …) and `must_not` content-warning exclusions run as `bool.filter` / `must_not` clauses, which are cached and applied **before** scoring. The BM25 scorer only sees the surviving documents.
+Facet filters and content-warning exclusions run as `bool.filter` and `must_not` clauses. OpenSearch can cache and apply these before scoring, so BM25 and kNN ranking work on fewer candidate documents.
+
+## Dense retrieval scaling
+
+Document embeddings are computed offline during indexing. Query embeddings are computed online but cached with an LRU cache keyed by query text. Repeated trope-heavy searches should benefit from this cache.
+
+As traffic grows, likely next steps are:
+
+- Increase FastAPI replicas for BM25-heavy traffic.
+- Move embedding inference to a dedicated service or ONNX runtime if query embedding latency dominates.
+- Increase OpenSearch replicas for read-heavy workloads.
 
 ## Pagination
 
-`/search` accepts `page` and `size`. We never return the whole result set; large `from + size` would be replaced by `search_after` once corpora grow past 10k results.
+`/search` accepts `page` and `size`, and the API never returns the full result set. For very large corpora, deep pagination should move from `from`/`size` to `search_after`.
 
-## Caching opportunities
+## Load testing
 
-- **Query-embedding cache.** When dense retrieval lands, embeddings for repeat queries are cached (LRU keyed by normalized query string). Expected hit rate is high because users phrase trope-heavy queries similarly.
-- **Result cache.** Popular `(query, filters)` combinations can be cached at the FastAPI layer or behind a reverse proxy.
-- **OpenSearch's own filter cache** handles repeated filter predicates automatically.
+`scripts/load_test.py` runs concurrent requests against `POST /search` and writes `reports/load_test_results.md`.
 
-## Indexing
+Recommended local command:
 
-Indexing is a batch job (`scripts/build_index.py`) decoupled from serving. As the catalog grows we can:
+```bash
+python scripts/load_test.py --modes bm25 hybrid --concurrency 10 50 100
+```
 
-- Switch to streaming bulk ingest from an upstream pipeline.
-- Run reindex jobs with zero downtime via alias swap.
+The report records p50, p95, max latency, request count, and success rate. These results are prototype evidence for the course deliverable, not production capacity guarantees.
 
-## Embeddings (planned)
+## Bottleneck checklist
 
-The dense path will compute query embeddings online (one model invocation per request, cached) and pre-compute document embeddings at index time. Document embedding generation is offline and embarrassingly parallel.
-
-## Load testing plan
-
-A future `scripts/load_test.py` (Locust or k6) will measure p50/p95 latency at:
-
-- 10, 50, 100, 250, 500 concurrent users
-- BM25-only vs. hybrid
-
-Results land in `reports/load_test_results.md`.
-
-## Bottleneck checklist (where we look first when things slow down)
-
-1. JVM heap / shard count on OpenSearch
-2. Field-data cache pressure from large terms aggregations
-3. Embedding model latency (move to GPU or onnxruntime)
-4. Backend serialization (use `orjson` if needed)
-5. Streamlit UI ↔ API round-trip count per render
+1. OpenSearch JVM heap and shard sizing
+2. kNN candidate count and vector index memory
+3. Query embedding latency
+4. Backend JSON serialization
+5. Streamlit to API round-trip count per render

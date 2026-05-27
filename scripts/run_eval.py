@@ -10,6 +10,7 @@ Prereqs:
 Usage:
     python scripts/run_eval.py
     python scripts/run_eval.py --backend http://localhost:8000 --k-recall 20
+    python scripts/run_eval.py --modes bm25 dense hybrid
 """
 from __future__ import annotations
 
@@ -27,6 +28,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 QUERIES = REPO_ROOT / "data" / "eval" / "queries.jsonl"
 QRELS = REPO_ROOT / "data" / "eval" / "qrels.csv"
 OUT = REPO_ROOT / "reports" / "metrics.json"
+COMPARISON_OUT = REPO_ROOT / "reports" / "comparison.md"
+DEFAULT_MODES = ["bm25", "dense", "hybrid"]
 
 
 def _load_queries() -> list[dict]:
@@ -70,10 +73,10 @@ def recall_at_k(retrieved_ids: list[str], qrel: dict[str, int], k: int) -> float
     return hit / len(relevant)
 
 
-def run_query(backend: str, query: dict, size: int) -> list[str]:
+def run_query(backend: str, query: dict, size: int, mode: str) -> list[str]:
     payload = {
         "query": query["query"],
-        "mode": "bm25",
+        "mode": mode,
         "page": 1,
         "size": size,
         "exclude_warnings": query.get("exclude_warnings", []),
@@ -94,71 +97,153 @@ def run_query(backend: str, query: dict, size: int) -> list[str]:
     return [h["work"]["work_id"] for h in body["hits"]]
 
 
+def _mean(rows: list[dict], key: str) -> float:
+    return sum(float(row[key]) for row in rows) / len(rows)
+
+
+def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args: argparse.Namespace) -> None:
+    lines = [
+        "# StorySeek Retrieval Comparison",
+        "",
+        "This report compares retrieval modes on the same query set and qrels.",
+        "",
+        "| Mode | mean nDCG@{} | mean MRR@{} | mean Recall@{} | Queries |".format(
+            args.k_ndcg,
+            args.k_mrr,
+            args.k_recall,
+        ),
+        "|---|---:|---:|---:|---:|",
+    ]
+    for row in overall:
+        lines.append(
+            "| {method} | {ndcg:.4f} | {mrr:.4f} | {recall:.4f} | {n_queries} |".format(
+                method=row["method"],
+                ndcg=row[f"mean_nDCG@{args.k_ndcg}"],
+                mrr=row[f"mean_MRR@{args.k_mrr}"],
+                recall=row[f"mean_Recall@{args.k_recall}"],
+                n_queries=row["n_queries"],
+            )
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Notes",
+            "",
+            "- BM25 is the lexical baseline with field boosting and metadata filters.",
+            "- Dense uses sentence-transformer embeddings and OpenSearch kNN search.",
+            "- Hybrid uses Reciprocal Rank Fusion over BM25 and Dense rankings.",
+            "- Current qrels are rule-derived from metadata, so dense semantic matches can be under-credited.",
+            "",
+            "## Per-query Results",
+            "",
+        ]
+    )
+    for mode, rows in per_mode.items():
+        lines.extend(
+            [
+                f"### {mode}",
+                "",
+                "| Query ID | nDCG@{} | MRR@{} | Recall@{} | Query |".format(
+                    args.k_ndcg,
+                    args.k_mrr,
+                    args.k_recall,
+                ),
+                "|---|---:|---:|---:|---|",
+            ]
+        )
+        for row in rows:
+            lines.append(
+                "| {query_id} | {ndcg:.4f} | {mrr:.4f} | {recall:.4f} | {query} |".format(
+                    query_id=row["query_id"],
+                    ndcg=row[f"nDCG@{args.k_ndcg}"],
+                    mrr=row[f"MRR@{args.k_mrr}"],
+                    recall=row[f"Recall@{args.k_recall}"],
+                    query=row["query"].replace("|", "\\|"),
+                )
+            )
+        lines.append("")
+
+    COMPARISON_OUT.write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run StorySeek retrieval eval.")
     parser.add_argument("--backend", default=os.environ.get("BACKEND_URL", "http://localhost:8000"))
     parser.add_argument("--k-ndcg", type=int, default=10)
     parser.add_argument("--k-mrr", type=int, default=10)
     parser.add_argument("--k-recall", type=int, default=20)
+    parser.add_argument("--modes", nargs="+", default=DEFAULT_MODES, choices=DEFAULT_MODES)
     args = parser.parse_args()
 
     queries = _load_queries()
     qrels = _load_qrels()
 
-    per_query: list[dict] = []
-    sums = {"ndcg": 0.0, "mrr": 0.0, "recall": 0.0}
+    all_overall: list[dict] = []
+    per_mode: dict[str, list[dict]] = {}
 
-    for q in queries:
-        qid = q["query_id"]
-        try:
-            retrieved = run_query(args.backend, q, size=max(args.k_recall, args.k_ndcg))
-        except requests.RequestException as exc:
-            print(f"[{qid}] backend error: {exc}", file=sys.stderr)
-            sys.exit(1)
-        qrel = qrels.get(qid, {})
-        ndcg = ndcg_at_k(retrieved, qrel, args.k_ndcg)
-        mrr = mrr_at_k(retrieved, qrel, args.k_mrr)
-        rec = recall_at_k(retrieved, qrel, args.k_recall)
-        sums["ndcg"] += ndcg
-        sums["mrr"] += mrr
-        sums["recall"] += rec
-        per_query.append(
-            {
-                "query_id": qid,
-                "query": q["query"],
-                "retrieved": len(retrieved),
-                f"nDCG@{args.k_ndcg}": round(ndcg, 4),
-                f"MRR@{args.k_mrr}": round(mrr, 4),
-                f"Recall@{args.k_recall}": round(rec, 4),
-            }
-        )
+    for mode in args.modes:
+        print(f"\nMode: {mode}")
+        per_query: list[dict] = []
+        for q in queries:
+            qid = q["query_id"]
+            try:
+                retrieved = run_query(
+                    args.backend,
+                    q,
+                    size=max(args.k_recall, args.k_ndcg),
+                    mode=mode,
+                )
+            except requests.RequestException as exc:
+                print(f"[{mode}:{qid}] backend error: {exc}", file=sys.stderr)
+                sys.exit(1)
+            qrel = qrels.get(qid, {})
+            ndcg = ndcg_at_k(retrieved, qrel, args.k_ndcg)
+            mrr = mrr_at_k(retrieved, qrel, args.k_mrr)
+            rec = recall_at_k(retrieved, qrel, args.k_recall)
+            per_query.append(
+                {
+                    "query_id": qid,
+                    "query": q["query"],
+                    "retrieved": len(retrieved),
+                    f"nDCG@{args.k_ndcg}": round(ndcg, 4),
+                    f"MRR@{args.k_mrr}": round(mrr, 4),
+                    f"Recall@{args.k_recall}": round(rec, 4),
+                }
+            )
+            print(
+                f"{qid:>6} | nDCG@{args.k_ndcg}={ndcg:.4f}  "
+                f"MRR@{args.k_mrr}={mrr:.4f}  Recall@{args.k_recall}={rec:.4f}  "
+                f"({q['query'][:60]})"
+            )
+
+        overall = {
+            "method": mode,
+            f"mean_nDCG@{args.k_ndcg}": round(_mean(per_query, f"nDCG@{args.k_ndcg}"), 4),
+            f"mean_MRR@{args.k_mrr}": round(_mean(per_query, f"MRR@{args.k_mrr}"), 4),
+            f"mean_Recall@{args.k_recall}": round(_mean(per_query, f"Recall@{args.k_recall}"), 4),
+            "n_queries": len(queries),
+        }
+        all_overall.append(overall)
+        per_mode[mode] = per_query
+
+    print("\nOverall:")
+    for row in all_overall:
         print(
-            f"{qid:>6} | nDCG@{args.k_ndcg}={ndcg:.4f}  "
-            f"MRR@{args.k_mrr}={mrr:.4f}  Recall@{args.k_recall}={rec:.4f}  "
-            f"({q['query'][:60]})"
+            f"  {row['method']}: "
+            f"mean_nDCG@{args.k_ndcg}={row[f'mean_nDCG@{args.k_ndcg}']:.4f}, "
+            f"mean_MRR@{args.k_mrr}={row[f'mean_MRR@{args.k_mrr}']:.4f}, "
+            f"mean_Recall@{args.k_recall}={row[f'mean_Recall@{args.k_recall}']:.4f}"
         )
-
-    n = len(queries)
-    overall = {
-        "method": "bm25",
-        f"mean_nDCG@{args.k_ndcg}": round(sums["ndcg"] / n, 4),
-        f"mean_MRR@{args.k_mrr}": round(sums["mrr"] / n, 4),
-        f"mean_Recall@{args.k_recall}": round(sums["recall"] / n, 4),
-        "n_queries": n,
-    }
-    print()
-    print("Overall (BM25):")
-    for k, v in overall.items():
-        if k in ("method", "n_queries"):
-            continue
-        print(f"  {k}: {v}")
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(
-        json.dumps({"overall": overall, "per_query": per_query}, indent=2),
+        json.dumps({"overall": all_overall, "per_mode": per_mode}, indent=2),
         encoding="utf-8",
     )
+    _write_comparison(all_overall, per_mode, args)
     print(f"\nWrote {OUT}")
+    print(f"Wrote {COMPARISON_OUT}")
 
 
 if __name__ == "__main__":

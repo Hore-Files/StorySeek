@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from opensearchpy.exceptions import NotFoundError, OpenSearchException
 
 from .config import get_settings
@@ -9,8 +10,23 @@ from .schemas import SearchHit, SearchRequest, SearchResponse, Work
 from .search.bm25 import build_bm25_query
 from .search.dense import build_dense_query
 from .search.explain import explain_hit
+from .search.hybrid import build_hybrid_queries, reciprocal_rank_fusion
 
 app = FastAPI(title="StorySeek API", version="0.1.0")
+
+# Allow React frontend to call this API from the browser (CORS)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
+        "http://localhost:8501",  # Streamlit (legacy)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
@@ -31,8 +47,11 @@ def health() -> dict:
 def search(req: SearchRequest) -> SearchResponse:
     if req.mode == "bm25":
         body = build_bm25_query(req)
-    else:
+    elif req.mode == "dense":
         body = build_dense_query(req)
+    else:
+        return hybrid_search(req)
+
     client = get_client()
     res = client.search(index=get_settings().opensearch_index, body=body)
     if req.mode == "bm25":
@@ -56,6 +75,41 @@ def search(req: SearchRequest) -> SearchResponse:
         query=req.query,
         mode=req.mode,
         total=total,
+        page=req.page,
+        size=req.size,
+        hits=hits,
+    )
+
+
+def hybrid_search(req: SearchRequest) -> SearchResponse:
+    client = get_client()
+    index = get_settings().opensearch_index
+    bm25_body, dense_body = build_hybrid_queries(req)
+    bm25_res = client.search(index=index, body=bm25_body)
+    dense_res = client.search(index=index, body=dense_body)
+    fused = reciprocal_rank_fusion(
+        [
+            bm25_res["hits"]["hits"],
+            dense_res["hits"]["hits"],
+        ]
+    )
+    offset = (req.page - 1) * req.size
+    raw_hits = fused[offset : offset + req.size]
+
+    hits: list[SearchHit] = []
+    for h in raw_hits:
+        work = Work.model_validate(h["_source"])
+        hits.append(
+            SearchHit(
+                work=work,
+                score=float(h.get("_score") or 0.0),
+                explanation=explain_hit(work, req),
+            )
+        )
+    return SearchResponse(
+        query=req.query,
+        mode=req.mode,
+        total=len(fused),
         page=req.page,
         size=req.size,
         hits=hits,

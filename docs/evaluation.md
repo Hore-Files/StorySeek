@@ -1,67 +1,74 @@
 # Evaluation
 
-StorySeek includes a small evaluation harness so retrieval changes can be measured, not just observed. This checkpoint reports BM25-only numbers; the harness is built to compare BM25 vs. Dense vs. Hybrid once those land.
+StorySeek includes an evaluation harness so retrieval changes can be measured instead of only demonstrated manually. The harness compares BM25, Dense, and Hybrid retrieval on the same query set and qrels.
 
 ## Datasets
 
 | File | Purpose |
 |---|---|
-| `data/eval/queries.jsonl` | 8 hand-written natural-language queries with target tropes/themes/genres and optional excluded content warnings. |
-| `data/eval/qrels.csv` | Graded relevance judgments per (query, work). |
-| `reports/metrics.json` | Most recent metrics dump produced by `scripts/run_eval.py`. |
+| `data/eval/queries.jsonl` | 8 natural-language queries with target tropes, themes, genres, and optional excluded warnings. |
+| `data/eval/qrels.csv` | Graded relevance judgments per `(query, work)`. |
+| `reports/metrics.json` | Latest machine-readable metrics dump from `scripts/run_eval.py`. |
+| `reports/comparison.md` | Latest human-readable comparison table. |
 
 ## Relevance scale
 
 | Grade | Meaning |
 |---|---|
 | 3 | All target tropes, themes, and genres are present; no excluded warning. |
-| 2 | At least one hit in each specified kind (trope/theme/genre), or all targets of a single kind match; no excluded warning. |
+| 2 | At least one hit in each specified category, or all targets of a single category match; no excluded warning. |
 | 1 | Any single target overlap; no excluded warning. |
-| 0 | No overlap, or the work contains a content warning the query excluded. |
+| 0 | No overlap, or the work contains an excluded content warning. |
 
 ## How qrels are produced
 
-For the synthetic corpus we have no human-labeled gold set, so qrels are **rule-derived** from each query's `target_*` fields and each work's metadata. The rule is the relevance scale above, implemented in `scripts/generate_eval_qrels.py`. This keeps the eval story reproducible: regenerating `qrels.csv` is deterministic given `queries.jsonl` and `data/sample/works.jsonl`.
+The current corpus is synthetic, so qrels are rule-derived from query targets and work metadata. This is deterministic and reproducible through `scripts/generate_eval_qrels.py`.
 
-When we move to a real dataset (Project Gutenberg / Standard Ebooks metadata) the queries stay; the qrels will be hand-labeled by the team instead of derived.
+Rule-derived qrels are useful for regression testing and controlled comparisons, but they favor exact metadata overlap. Dense retrieval can find semantically plausible matches that this qrel set under-credits, so a small hand-labeled subset should be added before making strong claims about semantic wins.
 
 ## Metrics
 
-- **nDCG@10** — graded gain discounted by rank; uses the qrel grades directly. Captures both whether top results are relevant and how relevant they are.
-- **MRR@10** — reciprocal rank of the first result with relevance ≥ 1. Captures top-rank quality.
-- **Recall@20** — fraction of judged-relevant docs returned in the top 20. Captures coverage.
+- **nDCG@10** - graded relevance discounted by rank.
+- **MRR@10** - reciprocal rank of the first result with relevance at least 1.
+- **Recall@20** - fraction of judged-relevant docs returned in the top 20.
 
-Each query's metric is averaged uniformly across the query set.
+Each query contributes equally to the mean.
 
 ## How to run
 
 ```bash
-# 1. Start OpenSearch and build the index (one-time).
+# 1. Start OpenSearch and build the index.
 docker compose up -d opensearch
 python scripts/build_index.py --recreate
 
-# 2. (Re)generate qrels if you edited queries.jsonl or works.jsonl.
+# 2. Regenerate qrels if queries or works changed.
 python scripts/generate_eval_qrels.py
 
 # 3. Start the backend in another terminal.
 uvicorn backend.app.main:app --port 8000
 
-# 4. Run the eval.
+# 4. Compare retrieval modes.
 python scripts/run_eval.py
 # -> prints per-query and mean metrics
-# -> writes reports/metrics.json
+# -> writes reports/metrics.json and reports/comparison.md
 ```
 
-## Roadmap
+To evaluate only selected modes:
+
+```bash
+python scripts/run_eval.py --modes bm25 dense
+```
+
+## Current methods
 
 | Method | Status |
 |---|---|
-| BM25 | Reported in `reports/metrics.json`. |
-| Dense (sentence-transformers + OpenSearch knn_vector) | Planned. Same harness — just a different `mode`. |
-| Hybrid BM25 + Dense via RRF | Planned. Reports will compare all three side-by-side. |
+| BM25 | Implemented and evaluated by `scripts/run_eval.py`. |
+| Dense | Implemented and evaluated by `scripts/run_eval.py`. |
+| Hybrid | Implemented with Reciprocal Rank Fusion and evaluated by `scripts/run_eval.py`. |
 
-## Known limits of this checkpoint
+## Known limits
 
-- Qrels are rule-derived, not hand-labeled, so they reward exact metadata overlap and do not penalize a system for missing the "vibes" of a query. Once dense lands, this will under-credit it; we will mitigate by hand-labeling a small sample.
-- The synthetic corpus is templated, so vocabulary diversity is low. Real text will be the harder test.
-- Only 8 queries today. We will grow this set as we add features and observe gaps.
+- Qrels are rule-derived, not hand-labeled.
+- The synthetic corpus is intentionally schema-rich but vocabulary-limited.
+- There are only 8 eval queries, so the metrics are a project demo signal, not a benchmark-grade result.
