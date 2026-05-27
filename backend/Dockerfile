@@ -6,8 +6,10 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY backend/requirements.txt /tmp/requirements.txt
+COPY backend/requirements-prod.txt /tmp/requirements-prod.txt
 RUN python -m pip install --no-cache-dir --upgrade pip \
-    && python -m pip install --no-cache-dir -r /tmp/requirements.txt
+    && python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu "torch==2.5.1" \
+    && python -m pip install --no-cache-dir -r /tmp/requirements-prod.txt
 
 COPY backend ./backend
 COPY data ./data
