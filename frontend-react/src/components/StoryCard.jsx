@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, ChevronUp, Sparkles, AlertCircle } from 'lucide-react';
 
 export default function StoryCard({ hit, onMoreLikeThis }) {
   const [showExplanation, setShowExplanation] = useState(false);

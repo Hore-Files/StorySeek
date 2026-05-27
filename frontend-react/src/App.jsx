@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Loader2, X, ChevronDown, ChevronUp, BookOpen, Layers, Theater, Star, AlertTriangle, Users, AlignLeft, Lightbulb, Target, Award, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Loader2, X, ChevronDown, ChevronUp, BookOpen, Layers, Theater, Star, AlertTriangle, Users, Lightbulb, Target, Award, Moon, Sun } from 'lucide-react';
 import StoryCard from './components/StoryCard';
 import SimilarStories from './components/SimilarStories';
 
@@ -76,7 +76,7 @@ function FloatingBadge({ Icon, color, style }) {
 // ─── Collapsible Filter Category ───────────────────────────────────────────────
 function FilterCategory({ category, selected, onChange }) {
   const [open, setOpen] = useState(false);
-  const { id, label, icon: Icon, options, danger } = category;
+  const { label, icon: Icon, options, danger } = category;
   const activeCount = selected.length;
 
   return (

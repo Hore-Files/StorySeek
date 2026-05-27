@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import StoryCard from './StoryCard';
 import { Loader2, ArrowLeft, BookOpen } from 'lucide-react';
 
