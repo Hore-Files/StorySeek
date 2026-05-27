@@ -19,6 +19,57 @@ services:
       - "9600:9600"
     volumes:
       - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  indexer:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "scripts/build_index.py", "--recreate"]
+    environment:
+      OPENSEARCH_URL: http://opensearch:9200
+      OPENSEARCH_INDEX_ALIAS: storyseek_works
+      SENTENCE_TRANSFORMERS_HOME: /models
+    volumes:
+      - model-cache:/models
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      OPENSEARCH_URL: http://opensearch:9200
+      OPENSEARCH_INDEX_ALIAS: storyseek_works
+      BACKEND_URL: http://localhost:8000
+      SENTENCE_TRANSFORMERS_HOME: /models
+    ports:
+      - "8000:8000"
+    volumes:
+      - model-cache:/models
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      indexer:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend-react/Dockerfile
+    environment:
+      VITE_BACKEND_URL: http://localhost:8000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
 
   # Uncomment to enable Dashboards UI on http://localhost:5601
   # opensearch-dashboards:
@@ -34,3 +85,4 @@ services:
 
 volumes:
   opensearch-data:
+  model-cache:
