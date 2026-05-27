@@ -64,7 +64,7 @@ def main() -> None:
             f"Alias '{alias}' was not changed."
         )
 
-    if index_exists(alias) and alias not in old_targets:
+    if index_exists(alias) and not old_targets:
         if not args.recreate:
             raise SystemExit(
                 f"Cannot create alias '{alias}' because a legacy index with that name exists. "
