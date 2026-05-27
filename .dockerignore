@@ -1,0 +1,11 @@
+.git
+.pytest_cache
+.venv
+.venv_py313_hung
+__pycache__
+*.pyc
+logs
+node_modules
+frontend-react/node_modules
+frontend-react/dist
+reports/*.json

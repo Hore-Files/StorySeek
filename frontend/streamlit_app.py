@@ -106,9 +106,9 @@ def main() -> None:
         st.header("Filters")
         mode = st.radio(
             "Retrieval mode",
-            options=["BM25", "Dense", "Hybrid (coming soon)"],
+            options=["BM25", "Dense", "Hybrid"],
             index=0,
-            help="Dense retrieval is available; hybrid is still coming soon.",
+            help="Compare keyword, vector, and fused ranking.",
         )
         sel_formats = st.multiselect("Format", FORMATS)
         sel_genres = st.multiselect("Genres", GENRES)
@@ -126,10 +126,7 @@ def main() -> None:
         placeholder="dark academia mystery with political intrigue and forbidden magic",
     )
 
-    if mode == "Hybrid (coming soon)":
-        st.info("Hybrid mode is coming soon. Falling back to BM25.")
-
-    mode_value = "dense" if mode == "Dense" else "bm25"
+    mode_value = {"BM25": "bm25", "Dense": "dense", "Hybrid": "hybrid"}[mode]
 
     payload = {
         "query": query,

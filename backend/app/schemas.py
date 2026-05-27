@@ -8,8 +8,8 @@ Format = Literal["novel", "short_story", "fanfic_style", "manga", "webnovel"]
 Status = Literal["Complete", "Ongoing", "Hiatus"]
 Length = Literal["short", "medium", "long"]
 Audience = Literal["General", "Teen", "Mature"]
-# Modes that the backend can serve today (hybrid is still planned).
-SearchMode = Literal["bm25", "dense"]
+# Modes that the backend can serve today.
+SearchMode = Literal["bm25", "dense", "hybrid"]
 
 
 class Work(BaseModel):

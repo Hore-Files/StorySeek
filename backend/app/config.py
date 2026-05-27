@@ -8,7 +8,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     opensearch_url: str = "http://localhost:9200"
-    opensearch_index: str = "storyseek_works"
+    opensearch_index_alias: str = "storyseek_works"
+    # Backward-compatible override for older local .env files.
+    opensearch_index: str | None = None
     opensearch_username: str | None = None
     opensearch_password: str | None = None
 
@@ -26,6 +28,10 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    @property
+    def search_index(self) -> str:
+        return self.opensearch_index or self.opensearch_index_alias
 
 
 @lru_cache(maxsize=1)

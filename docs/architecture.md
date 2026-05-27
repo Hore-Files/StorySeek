@@ -1,71 +1,74 @@
 # Architecture
 
+StorySeek is a shared-corpus retrieval system. Many users search the same fiction catalog through a stateless API backed by OpenSearch.
+
 ## Components
 
-```
-+-----------+      HTTP/JSON       +----------+      OpenSearch DSL     +-------------+
-| Streamlit | -------------------> | FastAPI  | ----------------------> | OpenSearch  |
-|    UI     | <------------------- |  app     | <---------------------- |   2.x       |
-+-----------+                      +----------+                         +-------------+
+```text
++------------------+       HTTP/JSON       +---------------+       OpenSearch DSL / kNN       +----------------+
+| React Frontend   | --------------------> | FastAPI API   | ------------------------------> | OpenSearch 2.x |
+| Vite, port 3001  | <-------------------- | Stateless     | <------------------------------ | BM25 + vectors |
++------------------+                       +---------------+                                  +----------------+
 ```
 
-### Streamlit frontend (`frontend/streamlit_app.py`)
-Thin client. Owns no state beyond Streamlit session. Renders search input, sidebar filters, mode radio (BM25 active; Dense/Hybrid disabled placeholders), and result cards. Calls FastAPI over HTTP.
+### React frontend
 
-### FastAPI backend (`backend/app/`)
-Stateless service. Endpoints:
+`frontend-react/` is the primary UI. It renders search input, mode selection, filters, pagination, result cards, explanations, dark mode, and "More Like This" traversal. It calls FastAPI over HTTP.
+
+`frontend/streamlit_app.py` is a legacy fallback UI.
+
+### FastAPI backend
+
+The backend is stateless. Endpoints:
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET`  | `/health` | Cluster + service liveness |
-| `POST` | `/search` | Run a query with filters, return ranked hits + explanations |
-| `GET`  | `/works/{work_id}` | Single record by id |
-| `GET`  | `/similar/{work_id}` | More-like-this over `combined_text` (vector kNN later) |
+| `GET` | `/health` | Service and OpenSearch health |
+| `POST` | `/search` | BM25, dense, or hybrid search |
+| `GET` | `/works/{work_id}` | Work detail lookup |
+| `GET` | `/similar/{work_id}` | Dense-vector similar works with text fallback |
 
-Modules:
+Main modules:
 
-- `config.py` — env-driven settings via `pydantic-settings`.
-- `opensearch_client.py` — single `OpenSearch` client + `INDEX_MAPPING`.
-- `schemas.py` — Pydantic models: `Work`, `SearchRequest`, `SearchHit`, `SearchResponse`.
-- `data_loader.py` — JSONL → bulk-index helpers.
-- `search/bm25.py` — `multi_match` query builder with field boosts + facet filters + content-warning `must_not`.
-- `search/explain.py` — rule-based "why this matched" generator.
+- `config.py`: environment settings, including `OPENSEARCH_INDEX_ALIAS`.
+- `opensearch_client.py`: OpenSearch client, mapping, versioned index helpers, and alias swap helpers.
+- `data_loader.py`: JSONL bulk-indexing with combined text and document embeddings.
+- `embeddings.py`: sentence-transformer wrapper and query embedding cache.
+- `search/bm25.py`: boosted lexical query builder.
+- `search/dense.py`: OpenSearch kNN query builder.
+- `search/hybrid.py`: Reciprocal Rank Fusion.
+- `search/explain.py`: deterministic explanation bullets.
 
-### OpenSearch
-Stores both keyword and (future) vector indexes. Single-node in dev (`docker-compose.yml`), sharded/replicated cluster in production.
-
-## Request flow — `POST /search`
+## Search Flow
 
 1. UI sends `{ query, filters, exclude_warnings, mode, page, size }`.
-2. Backend builds an OpenSearch `bool` query:
-   - `must`: `multi_match` over `title^3, summary^2, genres, themes, tropes, relationship_dynamics`.
-   - `filter`: term/terms clauses per facet (format, status, language, audience_rating, length_bucket, include tropes/genres).
-   - `must_not`: terms over `content_warnings` from `exclude_warnings`.
-3. OpenSearch returns ranked hits.
-4. Backend attaches a rule-based explanation per hit (matched tropes/themes, excluded-warning confirmation).
-5. JSON response back to the UI.
+2. Backend builds one of three retrieval paths:
+   - `bm25`: multi-field BM25 query with boosts.
+   - `dense`: query embedding plus OpenSearch kNN.
+   - `hybrid`: BM25 and dense results fused with RRF.
+3. OpenSearch applies metadata filters and content-warning exclusion.
+4. Backend strips internal fields and attaches explanation bullets.
+5. UI renders ranked results and optional similar-story traversal.
 
-## Index design
+## Index Design
 
-Single index `storyseek_works` with mapping:
+The API searches the alias `storyseek_works`. The indexer builds versioned indexes such as `storyseek_works_v20260527143000` and swaps the alias after a successful build.
 
-- `text`: `title`, `summary`, `combined_text` (title+summary+tags concatenation, used by `more_like_this` today and the dense vector tomorrow)
-- `keyword`: `format`, `language`, `status`, `audience_rating`, `length_bucket`, `source`, `creator`
+Indexed fields:
+
+- `text`: `title`, `summary`, `combined_text`
+- `keyword`: `work_id`, `creator`, `format`, `language`, `status`, `audience_rating`, `length_bucket`, `source`
 - `keyword[]`: `genres`, `themes`, `tropes`, `relationship_dynamics`, `content_warnings`
-- `keyword` id: `work_id`
+- `knn_vector`: `embedding`, dimension 384, HNSW/Lucene cosine similarity
 
-A `knn_vector` field (dim 384) will be added when dense retrieval lands; the mapping has a TODO marker.
+`combined_text` is built from title, summary, genres, themes, tropes, and relationship dynamics. It feeds document embeddings and lexical fallback similarity.
 
-## Retrieval methods
+## Retrieval Methods
 
-| Method | Status | Where |
-|---|---|---|
-| BM25 multi-field | Implemented | `search/bm25.py` |
-| Dense (sentence-transformers + kNN) | Planned | `search/dense.py` |
-| Hybrid BM25 + Dense via RRF | Planned | `search/hybrid.py` |
+| Method | Status |
+|---|---|
+| BM25 multi-field | Implemented |
+| Dense kNN | Implemented |
+| Hybrid BM25 + Dense via RRF | Implemented |
 
-## Why this is an IR project, not an LLM wrapper
-
-- Ranking is performed by classical IR (BM25) and will be augmented by dense vector similarity. No LLM is in the retrieval critical path.
-- Explanations are rule-based, derived from the matched fields. They are not generated by an LLM.
-- LLM/RAG could be added later as a post-retrieval summarizer, but is explicitly optional.
+No LLM is in the retrieval critical path. Search ranking is performed by classical IR, vector retrieval, metadata filters, and rank fusion.
