@@ -32,7 +32,7 @@ Every record in the catalog is a `work`.
 | `title` | string | 1 | Free text |
 | `creator` | string | 1 | Author/creator name |
 | `format` | enum | 1 | See below |
-| `summary` | string | 1 | 1–3 sentences |
+| `summary` | string | 1 | 1-3 sentences |
 | `genres` | enum[] | 1..n | |
 | `themes` | enum[] | 0..n | |
 | `tropes` | enum[] | 0..n | |
