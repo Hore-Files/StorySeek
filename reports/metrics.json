@@ -1,0 +1,225 @@
+{
+  "overall": [
+    {
+      "method": "bm25",
+      "mean_nDCG@10": 0.7058,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 0.1692,
+      "n_queries": 8
+    },
+    {
+      "method": "dense",
+      "mean_nDCG@10": 0.6786,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 0.1573,
+      "n_queries": 8
+    },
+    {
+      "method": "hybrid",
+      "mean_nDCG@10": 0.7304,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 0.1642,
+      "n_queries": 8
+    }
+  ],
+  "per_mode": {
+    "bm25": [
+      {
+        "query_id": "q_001",
+        "query": "slow burn rivals to lovers with found family",
+        "retrieved": 20,
+        "nDCG@10": 1.0,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1418
+      },
+      {
+        "query_id": "q_002",
+        "query": "dark academia mystery with political intrigue and forbidden magic",
+        "retrieved": 20,
+        "nDCG@10": 0.8975,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1136
+      },
+      {
+        "query_id": "q_003",
+        "query": "found family adventure, no major character death",
+        "retrieved": 20,
+        "nDCG@10": 0.5013,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1786
+      },
+      {
+        "query_id": "q_004",
+        "query": "enemies to lovers with mutual pining",
+        "retrieved": 20,
+        "nDCG@10": 0.5947,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1653
+      },
+      {
+        "query_id": "q_005",
+        "query": "kingdom building fantasy without graphic violence",
+        "retrieved": 20,
+        "nDCG@10": 0.5351,
+        "MRR@10": 1.0,
+        "Recall@20": 0.2532
+      },
+      {
+        "query_id": "q_006",
+        "query": "time loop coming of age story",
+        "retrieved": 20,
+        "nDCG@10": 0.7092,
+        "MRR@10": 1.0,
+        "Recall@20": 0.198
+      },
+      {
+        "query_id": "q_007",
+        "query": "academy setting with betrayal and redemption",
+        "retrieved": 20,
+        "nDCG@10": 0.8093,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1325
+      },
+      {
+        "query_id": "q_008",
+        "query": "hurt comfort found family healing story",
+        "retrieved": 20,
+        "nDCG@10": 0.5991,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1709
+      }
+    ],
+    "dense": [
+      {
+        "query_id": "q_001",
+        "query": "slow burn rivals to lovers with found family",
+        "retrieved": 20,
+        "nDCG@10": 1.0,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1418
+      },
+      {
+        "query_id": "q_002",
+        "query": "dark academia mystery with political intrigue and forbidden magic",
+        "retrieved": 20,
+        "nDCG@10": 0.7643,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1136
+      },
+      {
+        "query_id": "q_003",
+        "query": "found family adventure, no major character death",
+        "retrieved": 20,
+        "nDCG@10": 0.3608,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1548
+      },
+      {
+        "query_id": "q_004",
+        "query": "enemies to lovers with mutual pining",
+        "retrieved": 20,
+        "nDCG@10": 0.5715,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1405
+      },
+      {
+        "query_id": "q_005",
+        "query": "kingdom building fantasy without graphic violence",
+        "retrieved": 20,
+        "nDCG@10": 0.6719,
+        "MRR@10": 1.0,
+        "Recall@20": 0.2278
+      },
+      {
+        "query_id": "q_006",
+        "query": "time loop coming of age story",
+        "retrieved": 20,
+        "nDCG@10": 0.7347,
+        "MRR@10": 1.0,
+        "Recall@20": 0.198
+      },
+      {
+        "query_id": "q_007",
+        "query": "academy setting with betrayal and redemption",
+        "retrieved": 20,
+        "nDCG@10": 0.6989,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1192
+      },
+      {
+        "query_id": "q_008",
+        "query": "hurt comfort found family healing story",
+        "retrieved": 20,
+        "nDCG@10": 0.6265,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1624
+      }
+    ],
+    "hybrid": [
+      {
+        "query_id": "q_001",
+        "query": "slow burn rivals to lovers with found family",
+        "retrieved": 20,
+        "nDCG@10": 1.0,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1493
+      },
+      {
+        "query_id": "q_002",
+        "query": "dark academia mystery with political intrigue and forbidden magic",
+        "retrieved": 20,
+        "nDCG@10": 0.893,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1136
+      },
+      {
+        "query_id": "q_003",
+        "query": "found family adventure, no major character death",
+        "retrieved": 20,
+        "nDCG@10": 0.5145,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1667
+      },
+      {
+        "query_id": "q_004",
+        "query": "enemies to lovers with mutual pining",
+        "retrieved": 20,
+        "nDCG@10": 0.6059,
+        "MRR@10": 1.0,
+        "Recall@20": 0.157
+      },
+      {
+        "query_id": "q_005",
+        "query": "kingdom building fantasy without graphic violence",
+        "retrieved": 20,
+        "nDCG@10": 0.6439,
+        "MRR@10": 1.0,
+        "Recall@20": 0.2405
+      },
+      {
+        "query_id": "q_006",
+        "query": "time loop coming of age story",
+        "retrieved": 20,
+        "nDCG@10": 0.7424,
+        "MRR@10": 1.0,
+        "Recall@20": 0.198
+      },
+      {
+        "query_id": "q_007",
+        "query": "academy setting with betrayal and redemption",
+        "retrieved": 20,
+        "nDCG@10": 0.7629,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1258
+      },
+      {
+        "query_id": "q_008",
+        "query": "hurt comfort found family healing story",
+        "retrieved": 20,
+        "nDCG@10": 0.6805,
+        "MRR@10": 1.0,
+        "Recall@20": 0.1624
+      }
+    ]
+  }
+}
