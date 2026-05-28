@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ..opensearch_client import SEARCH_SOURCE_EXCLUDES
 from ..schemas import SearchRequest
 
 
@@ -63,6 +64,6 @@ def build_bm25_query(req: SearchRequest) -> dict:
                 "must_not": must_not,
             }
         },
-        "_source": {"excludes": ["combined_text", "embedding"]},
+        "_source": {"excludes": SEARCH_SOURCE_EXCLUDES},
     }
     return body

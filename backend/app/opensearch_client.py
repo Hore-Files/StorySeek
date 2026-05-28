@@ -7,6 +7,9 @@ from opensearchpy import OpenSearch
 
 from .config import get_settings
 
+SEARCH_SOURCE_EXCLUDES = ["combined_text", "embedding", "text"]
+EMBEDDING_LOOKUP_SOURCE_EXCLUDES = ["combined_text", "text"]
+
 # Index mapping. `combined_text` feeds BM25 and explanation support; `embedding`
 # feeds dense kNN and hybrid retrieval.
 INDEX_MAPPING: dict = {

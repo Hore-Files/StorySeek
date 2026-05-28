@@ -29,7 +29,7 @@ def test_dense_query_uses_knn_and_filters(monkeypatch):
     assert {"term": {"tropes": "found family"}} in knn_filter["filter"]
     assert {"term": {"themes": "healing"}} in knn_filter["filter"]
     assert knn_filter["must_not"] == [{"terms": {"content_warnings": ["major character death"]}}]
-    assert body["_source"]["excludes"] == ["combined_text", "embedding"]
+    assert body["_source"]["excludes"] == ["combined_text", "embedding", "text"]
 
 
 def test_dense_empty_query_uses_match_all():
