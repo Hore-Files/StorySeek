@@ -27,21 +27,20 @@ Live demo: https://storyseek.dev
 ## Architecture
 
 ```text
-React/Vite UI -> FastAPI API -> OpenSearch
-                         |-> storyseek_works  (metadata/details/facets)
-                         |-> storyseek_chunks (passage retrieval)
++------------------+       HTTP/JSON       +---------------+       OpenSearch DSL / kNN       +----------------+
+| React Frontend   | --------------------> | FastAPI API   | ------------------------------> | OpenSearch 2.x |
+| Vite, port 3001  | <-------------------- | Stateless     | <------------------------------ | BM25 + vectors |
++------------------+                       +---------------+                                  +----------------+
 ```
 
-Main paths:
+- `frontend-react/`: primary UI for search, filters, pagination, dark mode, and similar-story traversal.
+- `backend/app/`: FastAPI service, retrieval query builders, embeddings, index client, and schemas.
+- `scripts/build_index.py`: versioned index builder with alias swap for safer rebuilds.
+- `data/sample/works.jsonl`: deterministic synthetic catalog with 300 works.
+- `data/sample/works_gutenberg.jsonl`: optional Project Gutenberg catalog stored with Git LFS.
+- `data/eval/`: evaluation queries and rule-derived qrels.
 
-- `frontend-react/`: primary UI.
-- `backend/app/`: FastAPI service and retrieval logic.
-- `backend/app/search/`: BM25, dense, hybrid, and content-search query builders.
-- `scripts/build_index.py`: work index builder with versioned alias swap.
-- `scripts/build_chunk_index.py`: Gutenberg chunk index builder.
-- `data/sample/works_gutenberg.jsonl`: 500-work Gutenberg dataset, stored with Git LFS.
-- `data/processed/gutenberg_chunks.jsonl`: generated passage chunks.
-- `reports/gutenberg_comparison.md`: latest retrieval comparison.
+See `docs/architecture.md`, `docs/scalability.md`, `docs/evaluation.md`, and `docs/deployment.md` for details.
 
 ## Run With Docker
 
