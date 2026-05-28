@@ -1,0 +1,4 @@
+{"query_id": "gq_001", "query": "detective mystery with burglary and hidden identity", "target_topics": ["detective and mystery stories"], "target_subject_keywords": ["burglars", "identity"]}
+{"query_id": "gq_002", "query": "science fiction about telepathy and extrasensory perception", "target_topics": ["science fiction"], "target_subject_keywords": ["telepathy", "extrasensory perception"]}
+{"query_id": "gq_003", "query": "adventure story for young readers set in Africa", "target_topics": ["adventure stories", "juvenile fiction"], "target_subject_keywords": ["africa"]}
+{"query_id": "gq_004", "query": "short ghost story with supernatural elements", "target_topics": ["ghost stories", "short stories"], "target_subject_keywords": ["ghost", "supernatural"]}
