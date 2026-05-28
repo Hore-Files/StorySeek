@@ -63,3 +63,15 @@ class SearchResponse(BaseModel):
     page: int
     size: int
     hits: list[SearchHit]
+
+
+class FacetResponse(BaseModel):
+    formats: list[str] = Field(default_factory=list)
+    genres: list[str] = Field(default_factory=list)
+    tropes: list[str] = Field(default_factory=list)
+    themes: list[str] = Field(default_factory=list)
+    statuses: list[str] = Field(default_factory=list)
+    length_buckets: list[str] = Field(default_factory=list)
+    audience_ratings: list[str] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)
+    content_warnings: list[str] = Field(default_factory=list)

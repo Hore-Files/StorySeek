@@ -52,6 +52,26 @@ def _search_response(*ids: str) -> dict:
     }
 
 
+def _facet_response() -> dict:
+    buckets = {
+        "formats": ["novel", "short_story"],
+        "genres": ["adventure", "mystery"],
+        "tropes": ["found family", "slow burn"],
+        "themes": ["friendship", "redemption"],
+        "statuses": ["Complete"],
+        "length_buckets": ["long", "medium", "short"],
+        "audience_ratings": ["General", "Teen"],
+        "languages": ["English"],
+        "content_warnings": ["graphic violence", "major character death", "none"],
+    }
+    return {
+        "aggregations": {
+            name: {"buckets": [{"key": key, "doc_count": 1} for key in keys]}
+            for name, keys in buckets.items()
+        }
+    }
+
+
 def test_search_dense_routes_to_dense_builder(monkeypatch):
     fake = FakeClient([_search_response("w_1")])
     monkeypatch.setattr(main, "get_client", lambda: fake)
@@ -63,6 +83,32 @@ def test_search_dense_routes_to_dense_builder(monkeypatch):
     assert resp.status_code == 200
     assert resp.json()["mode"] == "dense"
     assert fake.calls[0]["body"]["query"] == {"dense": "dense"}
+
+
+def test_facets_returns_index_values_and_hides_none_warning(monkeypatch):
+    fake = FakeClient([_facet_response()])
+    monkeypatch.setattr(main, "get_client", lambda: fake)
+    client = TestClient(main.app)
+
+    resp = client.get("/facets")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["formats"] == ["novel", "short_story"]
+    assert body["genres"] == ["adventure", "mystery"]
+    assert body["content_warnings"] == ["graphic violence", "major character death"]
+    assert fake.calls[0]["body"]["size"] == 0
+    assert set(fake.calls[0]["body"]["aggs"]) >= {
+        "formats",
+        "genres",
+        "tropes",
+        "themes",
+        "statuses",
+        "length_buckets",
+        "audience_ratings",
+        "languages",
+        "content_warnings",
+    }
 
 
 def test_search_hybrid_fuses_two_result_sets(monkeypatch):

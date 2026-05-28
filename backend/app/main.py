@@ -10,7 +10,7 @@ from opensearchpy.exceptions import NotFoundError, OpenSearchException
 
 from .config import get_settings
 from .opensearch_client import EMBEDDING_LOOKUP_SOURCE_EXCLUDES, SEARCH_SOURCE_EXCLUDES, get_client
-from .schemas import SearchHit, SearchRequest, SearchResponse, Work
+from .schemas import FacetResponse, SearchHit, SearchRequest, SearchResponse, Work
 from .search.bm25 import build_bm25_query
 from .search.dense import build_dense_query
 from .search.explain import explain_hit
@@ -18,6 +18,18 @@ from .search.hybrid import build_hybrid_queries, reciprocal_rank_fusion
 
 app = FastAPI(title="StorySeek API", version="0.1.0")
 logger = logging.getLogger("storyseek.api")
+
+FACET_FIELDS = {
+    "formats": "format",
+    "genres": "genres",
+    "tropes": "tropes",
+    "themes": "themes",
+    "statuses": "status",
+    "length_buckets": "length_bucket",
+    "audience_ratings": "audience_rating",
+    "languages": "language",
+    "content_warnings": "content_warnings",
+}
 
 # Allow React frontend to call this API from the browser (CORS)
 app.add_middleware(
@@ -61,6 +73,30 @@ def health() -> dict:
         }
     except OpenSearchException as exc:
         return {"status": "degraded", "error": str(exc)}
+
+
+@app.get("/facets", response_model=FacetResponse)
+def facets() -> FacetResponse:
+    body = {
+        "size": 0,
+        "aggs": {
+            name: {
+                "terms": {
+                    "field": field,
+                    "size": 200,
+                    "order": {"_key": "asc"},
+                }
+            }
+            for name, field in FACET_FIELDS.items()
+        },
+    }
+    res = get_client().search(index=get_settings().search_index, body=body)
+    values = {
+        name: [bucket["key"] for bucket in res.get("aggregations", {}).get(name, {}).get("buckets", [])]
+        for name in FACET_FIELDS
+    }
+    values["content_warnings"] = [v for v in values["content_warnings"] if v != "none"]
+    return FacetResponse(**values)
 
 
 @app.post("/search", response_model=SearchResponse)

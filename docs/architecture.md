@@ -24,6 +24,7 @@ The backend is stateless. Endpoints:
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/health` | Service and OpenSearch health |
+| `GET` | `/facets` | Dataset-aware filter options from the active index |
 | `POST` | `/search` | BM25, dense, or hybrid search |
 | `GET` | `/works/{work_id}` | Work detail lookup |
 | `GET` | `/similar/{work_id}` | Dense-vector similar works with text fallback |
@@ -41,14 +42,15 @@ Main modules:
 
 ## Search Flow
 
-1. UI sends `{ query, filters, exclude_warnings, mode, page, size }`.
-2. Backend builds one of three retrieval paths:
+1. UI loads filter options from `/facets`, with static fallback options if the endpoint is unavailable.
+2. UI sends `{ query, filters, exclude_warnings, mode, page, size }`.
+3. Backend builds one of three retrieval paths:
    - `bm25`: multi-field BM25 query with boosts.
    - `dense`: query embedding plus OpenSearch kNN.
    - `hybrid`: BM25 and dense results fused with RRF.
-3. OpenSearch applies metadata filters and content-warning exclusion.
-4. Backend strips internal fields and attaches explanation bullets.
-5. UI renders ranked results and optional similar-story traversal.
+4. OpenSearch applies metadata filters and content-warning exclusion.
+5. Backend strips internal fields and attaches explanation bullets.
+6. UI renders ranked results and optional similar-story traversal.
 
 ## Index Design
 

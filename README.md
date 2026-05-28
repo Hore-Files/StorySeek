@@ -18,7 +18,7 @@ The system is a search and discovery layer over a fiction catalog. It is not a r
 - BM25 keyword search with field boosts over title, summary, genres, themes, tropes, relationships, and combined text.
 - Dense semantic search with `sentence-transformers/all-MiniLM-L6-v2` and OpenSearch `knn_vector`.
 - Hybrid search using Reciprocal Rank Fusion over BM25 and dense rankings.
-- Faceted filters for format, genre, trope, theme, status, audience rating, length, language, and content-warning exclusion.
+- Dataset-aware faceted filters for format, genre, trope, theme, status, audience rating, length, language, and content-warning exclusion.
 - Rule-based "Why this matched" explanations.
 - Semantic "More Like This" endpoint using stored document embeddings, with text fallback.
 - React + Vite frontend as the primary UI; Streamlit remains as a legacy fallback.

@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, Loader2, X, ChevronDown, ChevronUp, BookOpen, Layers, Theater, Star, AlertTriangle, Users, Lightbulb, Target, Award, Moon, Sun } from 'lucide-react';
 import StoryCard from './components/StoryCard';
 import SimilarStories from './components/SimilarStories';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
-const FILTER_CATEGORIES = [
+const DEFAULT_FILTER_CATEGORIES = [
   {
     id: 'formats',
     label: 'Format',
@@ -37,6 +37,12 @@ const FILTER_CATEGORIES = [
     options: ["Complete", "Ongoing", "Hiatus"],
   },
   {
+    id: 'length_buckets',
+    label: 'Length',
+    icon: BookOpen,
+    options: ["short", "medium", "long"],
+  },
+  {
     id: 'audiences',
     label: 'Audience',
     icon: Users,
@@ -50,6 +56,17 @@ const FILTER_CATEGORIES = [
     danger: true,
   },
 ];
+
+const FACET_OPTION_KEYS = {
+  formats: 'formats',
+  genres: 'genres',
+  tropes: 'tropes',
+  themes: 'themes',
+  statuses: 'statuses',
+  length_buckets: 'length_buckets',
+  audiences: 'audience_ratings',
+  exclude: 'content_warnings',
+};
 
 // ─── Floating Badge ────────────────────────────────────────────────────────────
 function FloatingBadge({ Icon, color, style }) {
@@ -147,8 +164,9 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     formats: [], genres: [], tropes: [], themes: [],
-    statuses: [], audiences: [], exclude: [],
+    statuses: [], length_buckets: [], audiences: [], exclude: [],
   });
+  const [facetOptions, setFacetOptions] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -158,9 +176,41 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(false);
 
   const totalActive = Object.values(filters).flat().length;
+  const filterCategories = useMemo(() => DEFAULT_FILTER_CATEGORIES
+    .map(cat => {
+      const facetKey = FACET_OPTION_KEYS[cat.id];
+      const hasDynamicOptions = facetOptions && Object.prototype.hasOwnProperty.call(facetOptions, facetKey);
+      const dynamicOptions = facetOptions?.[facetKey] || [];
+      const options = hasDynamicOptions ? dynamicOptions : cat.options;
+      return { ...cat, options };
+    })
+    .filter(cat => cat.options.length > 0), [facetOptions]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchFacets() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/facets`);
+        if (!res.ok) throw new Error('Failed to fetch facets');
+        const data = await res.json();
+        if (!cancelled) setFacetOptions(data);
+      } catch {
+        if (!cancelled) setFacetOptions(null);
+      }
+    }
+
+    fetchFacets();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const updateFilter = (key) => (val) => setFilters(prev => ({ ...prev, [key]: val }));
-  const clearAll = () => setFilters({ formats: [], genres: [], tropes: [], themes: [], statuses: [], audiences: [], exclude: [] });
+  const clearAll = () => setFilters({
+    formats: [], genres: [], tropes: [], themes: [],
+    statuses: [], length_buckets: [], audiences: [], exclude: [],
+  });
 
   const handleSearch = async (e, targetPage = 1, targetSize = size) => {
     if (e) e.preventDefault();
@@ -183,7 +233,7 @@ export default function App() {
         tropes: filters.tropes,
         themes: filters.themes,
         statuses: filters.statuses,
-        length_buckets: [],
+        length_buckets: filters.length_buckets,
         audience_ratings: filters.audiences,
         languages: [],
       }
@@ -411,7 +461,7 @@ export default function App() {
                 <p style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Refine your search results</p>
               </div>
 
-              {FILTER_CATEGORIES.map(cat => (
+              {filterCategories.map(cat => (
                 <FilterCategory
                   key={cat.id}
                   category={cat}
