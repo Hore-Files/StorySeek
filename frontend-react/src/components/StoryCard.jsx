@@ -7,6 +7,9 @@ export default function StoryCard({ hit, onMoreLikeThis }) {
   const [isExpHovered, setIsExpHovered] = useState(false);
   const { work, score, explanation } = hit;
   const warnings = (work.content_warnings || []).filter(w => w !== 'none');
+  const sourceLabel = work.source === 'project_gutenberg'
+    ? 'Project Gutenberg'
+    : work.source || 'Unknown source';
 
   const pillStyle = (bg, color) => ({
     padding: '5px 14px',
@@ -45,10 +48,21 @@ export default function StoryCard({ hit, onMoreLikeThis }) {
     }}>
       {/* ── Header: Title + Meta Tags ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 700, color: 'var(--color-on-surface)', marginBottom: 4 }}>
             {work.title}
           </h3>
+          <p style={{ fontSize: 13, color: 'var(--color-on-surface-variant)', marginBottom: 8 }}>
+            by {work.creator}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: score !== undefined ? 8 : 0 }}>
+            <span className="ss-pill" style={pillStyle('rgba(219,234,254,0.7)', '#1e40af')}>
+              {sourceLabel}
+            </span>
+            <span className="ss-pill" style={pillStyle('rgba(193,198,215,0.3)', '#414754')}>
+              ID {work.work_id}
+            </span>
+          </div>
           {score !== undefined && (
             <p style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Relevance score: {score.toFixed(2)}</p>
           )}

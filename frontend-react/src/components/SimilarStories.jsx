@@ -5,6 +5,10 @@ import { Loader2, ArrowLeft, BookOpen } from 'lucide-react';
 // Compact anchor card — shows the selected work as a reference
 function AnchorCard({ work }) {
   const tags = [...(work.tropes || []), ...(work.themes || [])].slice(0, 4);
+  const sourceLabel = work.source === 'project_gutenberg'
+    ? 'Project Gutenberg'
+    : work.source || 'Unknown source';
+
   return (
     <div className="ss-anchor-card" style={{
       backgroundColor: '#ffffff',
@@ -42,6 +46,22 @@ function AnchorCard({ work }) {
         }}>
           {work.title}
         </h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          <span style={{
+            padding: '3px 10px', borderRadius: 9999, fontSize: 10, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+            backgroundColor: 'rgba(219,234,254,0.7)', color: '#1e40af',
+          }}>
+            {sourceLabel}
+          </span>
+          <span style={{
+            padding: '3px 10px', borderRadius: 9999, fontSize: 10, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+            backgroundColor: 'rgba(193,198,215,0.3)', color: '#414754',
+          }}>
+            ID {work.work_id}
+          </span>
+        </div>
         <p style={{
           fontSize: 13, color: 'var(--color-on-surface-variant)', lineHeight: 1.55,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
