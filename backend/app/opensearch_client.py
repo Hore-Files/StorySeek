@@ -56,6 +56,45 @@ INDEX_MAPPING: dict = {
     },
 }
 
+CHUNK_INDEX_MAPPING: dict = {
+    "settings": {
+        "index": {
+            "number_of_shards": 1,
+            "number_of_replicas": 0,
+            "knn": True,
+        },
+        "analysis": {
+            "analyzer": {
+                "default": {"type": "standard"},
+            }
+        },
+    },
+    "mappings": {
+        "properties": {
+            "chunk_id": {"type": "keyword"},
+            "work_id": {"type": "keyword"},
+            "book_id": {"type": "keyword"},
+            "chunk_index": {"type": "integer"},
+            "title": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
+            "creator": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
+            "genres": {"type": "keyword"},
+            "themes": {"type": "keyword"},
+            "source": {"type": "keyword"},
+            "text_chunk": {"type": "text"},
+            "combined_text": {"type": "text"},
+            "embedding": {
+                "type": "knn_vector",
+                "dimension": 384,
+                "method": {
+                    "name": "hnsw",
+                    "engine": "lucene",
+                    "space_type": "cosinesimil",
+                },
+            },
+        }
+    },
+}
+
 
 def build_combined_text(doc: dict) -> str:
     parts = [
@@ -65,6 +104,17 @@ def build_combined_text(doc: dict) -> str:
         " ".join(doc.get("themes", [])),
         " ".join(doc.get("tropes", [])),
         " ".join(doc.get("relationship_dynamics", [])),
+    ]
+    return " ".join(p for p in parts if p)
+
+
+def build_chunk_combined_text(doc: dict) -> str:
+    parts = [
+        doc.get("title", ""),
+        doc.get("creator", ""),
+        " ".join(doc.get("genres", [])),
+        " ".join(doc.get("themes", [])),
+        doc.get("text_chunk", ""),
     ]
     return " ".join(p for p in parts if p)
 
@@ -100,6 +150,18 @@ def ensure_index(index: str | None = None, recreate: bool = False) -> str:
         exists = False
     if not exists:
         client.indices.create(index=index, body=INDEX_MAPPING)
+    return index
+
+
+def ensure_chunk_index(recreate: bool = False) -> str:
+    client = get_client()
+    index = get_settings().opensearch_chunks_index
+    exists = client.indices.exists(index=index)
+    if exists and recreate:
+        client.indices.delete(index=index)
+        exists = False
+    if not exists:
+        client.indices.create(index=index, body=CHUNK_INDEX_MAPPING)
     return index
 
 

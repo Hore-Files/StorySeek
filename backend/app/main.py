@@ -12,6 +12,12 @@ from .config import get_settings
 from .opensearch_client import EMBEDDING_LOOKUP_SOURCE_EXCLUDES, SEARCH_SOURCE_EXCLUDES, get_client
 from .schemas import FacetResponse, SearchHit, SearchRequest, SearchResponse, Work
 from .search.bm25 import build_bm25_query
+from .search.content import (
+    build_chunk_bm25_query,
+    build_chunk_dense_query,
+    build_chunk_hybrid_queries,
+    group_chunk_hits,
+)
 from .search.dense import build_dense_query
 from .search.explain import explain_hit
 from .search.hybrid import build_hybrid_queries, reciprocal_rank_fusion
@@ -95,7 +101,7 @@ def facets() -> FacetResponse:
         name: [bucket["key"] for bucket in res.get("aggregations", {}).get(name, {}).get("buckets", [])]
         for name in FACET_FIELDS
     }
-    values["content_warnings"] = [v for v in values["content_warnings"] if v != "none"]
+    values["content_warnings"] = [v for v in values["content_warnings"] if v not in {"none", "unknown"}]
     return FacetResponse(**values)
 
 
@@ -144,6 +150,48 @@ def search(req: SearchRequest) -> SearchResponse:
         req.size,
     )
     return response
+
+
+@app.post("/search-content", response_model=SearchResponse)
+def search_content(req: SearchRequest) -> SearchResponse:
+    client = get_client()
+    settings = get_settings()
+
+    if req.mode == "bm25":
+        body = build_chunk_bm25_query(req)
+        res = client.search(index=settings.opensearch_chunks_index, body=body)
+        chunk_hits = res["hits"]["hits"]
+    elif req.mode == "dense":
+        body = build_chunk_dense_query(req)
+        res = client.search(index=settings.opensearch_chunks_index, body=body)
+        chunk_hits = res["hits"]["hits"]
+    else:
+        bm25_body, dense_body = build_chunk_hybrid_queries(req)
+        bm25_res = client.search(index=settings.opensearch_chunks_index, body=bm25_body)
+        dense_res = client.search(index=settings.opensearch_chunks_index, body=dense_body)
+        chunk_hits = reciprocal_rank_fusion(
+            [
+                bm25_res["hits"]["hits"],
+                dense_res["hits"]["hits"],
+            ]
+        )
+
+    hits, total = group_chunk_hits(
+        chunk_hits,
+        client=client,
+        works_index=settings.search_index,
+        req=req,
+        page=req.page,
+        size=req.size,
+    )
+    return SearchResponse(
+        query=req.query,
+        mode=req.mode,
+        total=total,
+        page=req.page,
+        size=req.size,
+        hits=hits,
+    )
 
 
 def hybrid_search(req: SearchRequest) -> SearchResponse:

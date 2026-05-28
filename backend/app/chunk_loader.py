@@ -8,11 +8,10 @@ from opensearchpy.helpers import bulk
 
 from .config import get_settings
 from .embeddings import embed_texts
-from .opensearch_client import build_combined_text, get_client
+from .opensearch_client import build_chunk_combined_text, get_client
 
-RAW_TEXT_FIELDS = {"text", "content", "full_text"}
-BULK_CHUNK_SIZE = 8
-BULK_MAX_CHUNK_BYTES = 10 * 1024 * 1024
+BULK_CHUNK_SIZE = 128
+BULK_MAX_CHUNK_BYTES = 20 * 1024 * 1024
 
 
 def iter_jsonl(path: Path) -> Iterator[dict]:
@@ -24,7 +23,7 @@ def iter_jsonl(path: Path) -> Iterator[dict]:
             yield json.loads(line)
 
 
-def _actions(docs: Iterable[dict], index: str) -> Iterator[dict]:
+def _actions(chunks: Iterable[dict], index: str) -> Iterator[dict]:
     batch_docs: list[dict] = []
     batch_texts: list[str] = []
 
@@ -33,22 +32,19 @@ def _actions(docs: Iterable[dict], index: str) -> Iterator[dict]:
             return iter(())
         embeddings = embed_texts(batch_texts)
         for doc, combined_text, emb in zip(batch_docs, batch_texts, embeddings, strict=True):
-            # Keep the canonical JSONL intact, but do not store full-book text in
-            # the work index. Large raw text fields can make OpenSearch reject
-            # bulk requests and are better indexed through the chunk index.
-            enriched = {k: v for k, v in doc.items() if k not in RAW_TEXT_FIELDS}
+            enriched = dict(doc)
             enriched["combined_text"] = combined_text
             enriched["embedding"] = emb
             yield {
                 "_op_type": "index",
                 "_index": index,
-                "_id": doc["work_id"],
+                "_id": doc["chunk_id"],
                 "_source": enriched,
             }
 
-    for doc in docs:
+    for doc in chunks:
         batch_docs.append(doc)
-        batch_texts.append(build_combined_text(doc))
+        batch_texts.append(build_chunk_combined_text(doc))
         if len(batch_docs) >= 32:
             yield from flush()
             batch_docs.clear()
@@ -58,9 +54,9 @@ def _actions(docs: Iterable[dict], index: str) -> Iterator[dict]:
         yield from flush()
 
 
-def bulk_index(path: Path, index: str | None = None) -> int:
+def bulk_index_chunks(path: Path) -> int:
     client = get_client()
-    index = index or get_settings().search_index
+    index = get_settings().opensearch_chunks_index
     success, _ = bulk(
         client,
         _actions(iter_jsonl(path), index),

@@ -85,7 +85,7 @@ function AnchorCard({ work }) {
   );
 }
 
-export default function SimilarStories({ work, onClose, backendUrl, onMoreLikeThis }) {
+export default function SimilarStories({ work, onClose, backendUrl, onMoreLikeThis, onSeeDetails }) {
   const [similarHits, setSimilarHits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -179,6 +179,7 @@ export default function SimilarStories({ work, onClose, backendUrl, onMoreLikeTh
               key={i}
               hit={hit}
               onMoreLikeThis={onMoreLikeThis}
+              onSeeDetails={onSeeDetails}
             />
           ))}
         </div>

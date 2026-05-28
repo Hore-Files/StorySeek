@@ -1,7 +1,7 @@
-"""Run retrieval evaluation against a running StorySeek backend.
+﻿"""Run retrieval evaluation against a running StorySeek backend.
 
-Computes nDCG@10, MRR@10, and Recall@20 for each query in
-data/eval/queries.jsonl using judgments from data/eval/qrels.csv.
+Computes nDCG@10, MRR@10, and Recall@20 for each query using judgments
+from a qrels CSV file.
 
 Prereqs:
     - OpenSearch is running and the index is built (scripts/build_index.py).
@@ -11,6 +11,7 @@ Usage:
     python scripts/run_eval.py
     python scripts/run_eval.py --backend http://localhost:8000 --k-recall 20
     python scripts/run_eval.py --modes bm25 dense hybrid
+    python scripts/run_eval.py --queries data/eval/queries_gutenberg.jsonl --qrels data/eval/qrels_gutenberg.csv
 """
 from __future__ import annotations
 
@@ -103,12 +104,13 @@ def _mean(rows: list[dict], key: str) -> float:
     return sum(float(row[key]) for row in rows) / len(rows)
 
 
-def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args: argparse.Namespace) -> None:
+def _qrels_note(args: argparse.Namespace) -> str:
     if "gutenberg" in args.qrels.name.lower():
-        qrels_note = "- Current qrels are LLM-assisted pooled judgments over Project Gutenberg candidates."
-    else:
-        qrels_note = "- Current qrels are rule-derived from metadata, so dense semantic matches can be under-credited."
+        return "- Current qrels are LLM-assisted pooled judgments over Project Gutenberg candidates."
+    return "- Current qrels are rule-derived from metadata, so dense semantic matches can be under-credited."
 
+
+def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args: argparse.Namespace) -> None:
     lines = [
         "# StorySeek Retrieval Comparison",
         "",
@@ -143,7 +145,7 @@ def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args
             "- BM25 is the lexical baseline with field boosting and metadata filters.",
             "- Dense uses sentence-transformer embeddings and OpenSearch kNN search.",
             "- Hybrid uses Reciprocal Rank Fusion over BM25 and Dense rankings.",
-            qrels_note,
+            _qrels_note(args),
             "",
             "## Per-query Results",
             "",
@@ -174,6 +176,7 @@ def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args
             )
         lines.append("")
 
+    args.comparison_out.parent.mkdir(parents=True, exist_ok=True)
     args.comparison_out.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -256,7 +259,6 @@ def main() -> None:
         )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.comparison_out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
         json.dumps({"overall": all_overall, "per_mode": per_mode}, indent=2),
         encoding="utf-8",

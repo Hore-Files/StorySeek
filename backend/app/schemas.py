@@ -28,6 +28,10 @@ class Work(BaseModel):
     length_bucket: Length
     language: str = "English"
     source: str = "synthetic"
+    book_id: str | None = None
+    pg_subjects: list[str] = Field(default_factory=list)
+    topics: list[str] = Field(default_factory=list)
+    release_date: str | None = None
 
 
 class SearchFilters(BaseModel):
@@ -50,10 +54,18 @@ class SearchRequest(BaseModel):
     size: int = Field(default=10, ge=1, le=50)
 
 
+class MatchedPassage(BaseModel):
+    chunk_id: str
+    chunk_index: int
+    text_chunk: str
+    score: float
+
+
 class SearchHit(BaseModel):
     work: Work
     score: float
     explanation: list[str] = Field(default_factory=list)
+    matched_passages: list[MatchedPassage] = Field(default_factory=list)
 
 
 class SearchResponse(BaseModel):
