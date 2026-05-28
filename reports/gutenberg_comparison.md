@@ -4,18 +4,20 @@ This report compares retrieval modes on the same query set and qrels.
 
 - Queries: `data/eval/gutenberg_queries.jsonl`
 - Qrels: `data/eval/gutenberg_qrels.csv`
+- Endpoint: `/search-content`
 
 | Mode | mean nDCG@10 | mean MRR@10 | mean Recall@20 | Queries |
 |---|---:|---:|---:|---:|
-| bm25 | 0.7492 | 1.0000 | 0.7303 | 8 |
-| dense | 0.8040 | 1.0000 | 0.7830 | 8 |
-| hybrid | 0.8082 | 1.0000 | 1.0000 | 8 |
+| bm25 | 0.1958 | 0.4345 | 0.3010 | 8 |
+| dense | 0.4261 | 0.7470 | 0.5799 | 8 |
+| hybrid | 0.4221 | 0.7304 | 0.5058 | 8 |
 
 ## Notes
 
 - BM25 is the lexical baseline with field boosting and metadata filters.
 - Dense uses sentence-transformer embeddings and OpenSearch kNN search.
 - Hybrid uses Reciprocal Rank Fusion over BM25 and Dense rankings.
+- `/search` evaluates work-level retrieval; `/search-content` evaluates passage/chunk retrieval grouped back to works.
 - Current qrels are LLM-assisted pooled judgments over Project Gutenberg candidates.
 
 ## Per-query Results
@@ -24,37 +26,37 @@ This report compares retrieval modes on the same query set and qrels.
 
 | Query ID | nDCG@10 | MRR@10 | Recall@20 | Query |
 |---|---:|---:|---:|---|
-| gq_001 | 0.8829 | 1.0000 | 0.8889 | christmas ghost story about redemption and moral change |
-| gq_002 | 0.7242 | 1.0000 | 0.6250 | king arthur knights chivalric adventure |
-| gq_003 | 0.7060 | 1.0000 | 0.7692 | detective mystery involving murder and deception |
-| gq_004 | 0.7294 | 1.0000 | 0.5714 | coming of age school adventure |
-| gq_005 | 0.6541 | 1.0000 | 0.5385 | historical romance adventure with political intrigue |
-| gq_006 | 0.9003 | 1.0000 | 0.9000 | supernatural ghost tales horror |
-| gq_007 | 0.7543 | 1.0000 | 0.8571 | sea adventure survival and travel |
-| gq_008 | 0.6425 | 1.0000 | 0.6923 | children fantasy adventure with animals |
+| gq_001 | 0.2732 | 1.0000 | 0.5556 | christmas ghost story about redemption and moral change |
+| gq_002 | 0.5274 | 1.0000 | 0.5000 | king arthur knights chivalric adventure |
+| gq_003 | 0.2733 | 0.3333 | 0.3077 | detective mystery involving murder and deception |
+| gq_004 | 0.2126 | 0.5000 | 0.2143 | coming of age school adventure |
+| gq_005 | 0.0000 | 0.0000 | 0.0769 | historical romance adventure with political intrigue |
+| gq_006 | 0.2218 | 0.5000 | 0.6000 | supernatural ghost tales horror |
+| gq_007 | 0.0000 | 0.0000 | 0.0000 | sea adventure survival and travel |
+| gq_008 | 0.0582 | 0.1429 | 0.1538 | children fantasy adventure with animals |
 
 ### dense
 
 | Query ID | nDCG@10 | MRR@10 | Recall@20 | Query |
 |---|---:|---:|---:|---|
-| gq_001 | 0.8892 | 1.0000 | 0.8889 | christmas ghost story about redemption and moral change |
-| gq_002 | 0.9192 | 1.0000 | 0.7500 | king arthur knights chivalric adventure |
-| gq_003 | 0.8804 | 1.0000 | 0.9231 | detective mystery involving murder and deception |
-| gq_004 | 0.5874 | 1.0000 | 0.6429 | coming of age school adventure |
-| gq_005 | 0.6982 | 1.0000 | 0.5385 | historical romance adventure with political intrigue |
-| gq_006 | 0.9283 | 1.0000 | 0.9000 | supernatural ghost tales horror |
-| gq_007 | 0.8639 | 1.0000 | 0.9286 | sea adventure survival and travel |
-| gq_008 | 0.6655 | 1.0000 | 0.6923 | children fantasy adventure with animals |
+| gq_001 | 0.5667 | 1.0000 | 0.8889 | christmas ghost story about redemption and moral change |
+| gq_002 | 0.5734 | 1.0000 | 0.5000 | king arthur knights chivalric adventure |
+| gq_003 | 0.3021 | 0.3333 | 0.6923 | detective mystery involving murder and deception |
+| gq_004 | 0.4055 | 1.0000 | 0.5000 | coming of age school adventure |
+| gq_005 | 0.1336 | 0.1429 | 0.1538 | historical romance adventure with political intrigue |
+| gq_006 | 0.7364 | 1.0000 | 0.8000 | supernatural ghost tales horror |
+| gq_007 | 0.4608 | 0.5000 | 0.6429 | sea adventure survival and travel |
+| gq_008 | 0.2306 | 1.0000 | 0.4615 | children fantasy adventure with animals |
 
 ### hybrid
 
 | Query ID | nDCG@10 | MRR@10 | Recall@20 | Query |
 |---|---:|---:|---:|---|
-| gq_001 | 0.8865 | 1.0000 | 1.0000 | christmas ghost story about redemption and moral change |
-| gq_002 | 0.8833 | 1.0000 | 1.0000 | king arthur knights chivalric adventure |
-| gq_003 | 0.8074 | 1.0000 | 1.0000 | detective mystery involving murder and deception |
-| gq_004 | 0.7938 | 1.0000 | 1.0000 | coming of age school adventure |
-| gq_005 | 0.6382 | 1.0000 | 1.0000 | historical romance adventure with political intrigue |
-| gq_006 | 0.8543 | 1.0000 | 1.0000 | supernatural ghost tales horror |
-| gq_007 | 0.8972 | 1.0000 | 1.0000 | sea adventure survival and travel |
-| gq_008 | 0.7048 | 1.0000 | 1.0000 | children fantasy adventure with animals |
+| gq_001 | 0.6386 | 1.0000 | 0.8889 | christmas ghost story about redemption and moral change |
+| gq_002 | 0.6412 | 1.0000 | 0.5000 | king arthur knights chivalric adventure |
+| gq_003 | 0.4116 | 1.0000 | 0.4615 | detective mystery involving murder and deception |
+| gq_004 | 0.5002 | 1.0000 | 0.4286 | coming of age school adventure |
+| gq_005 | 0.0702 | 0.1429 | 0.0769 | historical romance adventure with political intrigue |
+| gq_006 | 0.5108 | 1.0000 | 0.8000 | supernatural ghost tales horror |
+| gq_007 | 0.3682 | 0.5000 | 0.4286 | sea adventure survival and travel |
+| gq_008 | 0.2359 | 0.2000 | 0.4615 | children fantasy adventure with animals |
