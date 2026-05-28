@@ -54,14 +54,16 @@ jobs:
 
             cat > .env.prod <<'EOF'
             OPENSEARCH_INDEX_ALIAS=storyseek_works
-            DATA_PATH=${{ secrets.DATA_PATH || '/app/data/sample/works.jsonl' }}
+            OPENSEARCH_CHUNKS_INDEX=storyseek_chunks
+            DATA_PATH=${{ secrets.DATA_PATH || '/app/data/sample/works_gutenberg.jsonl' }}
             VITE_BACKEND_URL=/api
             WEB_PORT=${{ secrets.WEB_PORT || 8080 }}
             EOF
 
             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d opensearch
-            docker compose -f docker-compose.prod.yml --env-file .env.prod build api indexer frontend
+            docker compose -f docker-compose.prod.yml --env-file .env.prod build api indexer chunk-indexer frontend
             docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --build indexer
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build api frontend
+            docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --build chunk-indexer
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps --build api frontend
             docker compose -f docker-compose.prod.yml --env-file .env.prod ps
             docker image prune -f

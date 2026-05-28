@@ -33,7 +33,24 @@ services:
     environment:
       OPENSEARCH_URL: http://opensearch:9200
       OPENSEARCH_INDEX_ALIAS: storyseek_works
-      DATA_PATH: ${DATA_PATH:-/app/data/sample/works.jsonl}
+      DATA_PATH: ${DATA_PATH:-/app/data/sample/works_gutenberg.jsonl}
+      OPENSEARCH_CHUNKS_INDEX: storyseek_chunks
+      SENTENCE_TRANSFORMERS_HOME: /models
+    volumes:
+      - model-cache:/models
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    restart: "no"
+
+  chunk-indexer:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "scripts/build_chunk_index.py", "--recreate"]
+    environment:
+      OPENSEARCH_URL: http://opensearch:9200
+      OPENSEARCH_CHUNKS_INDEX: storyseek_chunks
       SENTENCE_TRANSFORMERS_HOME: /models
     volumes:
       - model-cache:/models
@@ -59,6 +76,8 @@ services:
       opensearch:
         condition: service_healthy
       indexer:
+        condition: service_completed_successfully
+      chunk-indexer:
         condition: service_completed_successfully
 
   frontend:

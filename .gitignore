@@ -6,6 +6,7 @@ venv/
 env/
 .env
 .pytest_cache/
+.tmp_pytest*/
 .mypy_cache/
 .ruff_cache/
 .DS_Store
