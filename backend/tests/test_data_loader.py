@@ -10,6 +10,7 @@ def test_actions_enrich_docs_with_combined_text_and_embedding(monkeypatch):
             "work_id": "w_0001",
             "title": "Glass Letter",
             "summary": "A slow burn mystery.",
+            "text": "Long raw source text should stay out of OpenSearch.",
             "genres": ["mystery"],
             "themes": ["healing"],
             "tropes": ["slow burn"],
@@ -24,4 +25,5 @@ def test_actions_enrich_docs_with_combined_text_and_embedding(monkeypatch):
     source = actions[0]["_source"]
     assert "Glass Letter" in source["combined_text"]
     assert "slow burn" in source["combined_text"]
+    assert "text" not in source
     assert source["embedding"] == [0.1] * 384

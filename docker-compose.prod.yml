@@ -34,6 +34,7 @@ services:
     environment:
       OPENSEARCH_URL: http://opensearch:9200
       OPENSEARCH_INDEX_ALIAS: ${OPENSEARCH_INDEX_ALIAS:-storyseek_works}
+      DATA_PATH: ${DATA_PATH:-/app/data/sample/works.jsonl}
       SENTENCE_TRANSFORMERS_HOME: /models
     volumes:
       - model-cache:/models

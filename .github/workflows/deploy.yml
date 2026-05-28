@@ -45,9 +45,16 @@ jobs:
             cd "$DEPLOY_PATH"
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
+            if command -v git-lfs >/dev/null 2>&1; then
+              git lfs install --local
+              git lfs pull
+            else
+              echo "git-lfs not installed on VPS; skipping LFS pull."
+            fi
 
             cat > .env.prod <<'EOF'
             OPENSEARCH_INDEX_ALIAS=storyseek_works
+            DATA_PATH=${{ secrets.DATA_PATH || '/app/data/sample/works.jsonl' }}
             VITE_BACKEND_URL=/api
             WEB_PORT=${{ secrets.WEB_PORT || 8080 }}
             EOF

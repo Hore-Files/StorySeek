@@ -39,6 +39,7 @@ The system is a search and discovery layer over a fiction catalog. It is not a r
 - `backend/app/`: FastAPI service, retrieval query builders, embeddings, index client, and schemas.
 - `scripts/build_index.py`: versioned index builder with alias swap for safer rebuilds.
 - `data/sample/works.jsonl`: deterministic synthetic catalog with 300 works.
+- `data/sample/works_gutenberg.jsonl`: optional Project Gutenberg catalog stored with Git LFS.
 - `data/eval/`: evaluation queries and rule-derived qrels.
 
 See `docs/architecture.md`, `docs/scalability.md`, `docs/evaluation.md`, and `docs/deployment.md` for details.
@@ -73,6 +74,12 @@ python -m pip install -r backend\requirements.txt
 
 python scripts\build_index.py --recreate
 uvicorn backend.app.main:app --reload --port 8000
+```
+
+To index the optional Project Gutenberg dataset instead:
+
+```powershell
+python scripts\build_index.py --recreate --path data\sample\works_gutenberg.jsonl
 ```
 
 In a second terminal:
@@ -128,10 +135,12 @@ Copy `.env.example` to `.env` if you want to override defaults.
 | `BACKEND_URL` | `http://localhost:8000` | Used by legacy Streamlit |
 | `VITE_BACKEND_URL` | `http://localhost:8000` | Used by React frontend |
 | `EMBEDDING_MODEL_NAME` | `sentence-transformers/all-MiniLM-L6-v2` | Dense retrieval model |
+| `DATA_PATH` | `data/sample/works.jsonl` | Dataset path used by the indexer |
 
 ## Notes for Graders
 
 - StorySeek is fundamentally an IR system: BM25, dense retrieval, metadata filters, and rank fusion are the core path.
 - No LLM is required for search or explanation.
-- The current dataset is synthetic by design because trope, relationship, status, and content-warning metadata are central to the project.
+- The default dataset is synthetic by design because trope, relationship, status, and content-warning metadata are central to the project.
+- `works_gutenberg.jsonl` is an optional real/public corpus. It is currently indexed as work-level title, summary, and metadata retrieval; raw full text is kept out of OpenSearch `_source` responses and embeddings for the MVP.
 - Evaluation qrels are rule-derived from metadata and should be treated as reproducible prototype evidence, not a benchmark-grade human-labeled dataset.

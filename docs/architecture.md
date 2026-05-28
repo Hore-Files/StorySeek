@@ -63,6 +63,8 @@ Indexed fields:
 
 `combined_text` is built from title, summary, genres, themes, tropes, and relationship dynamics. It feeds document embeddings and lexical fallback similarity.
 
+Optional raw full text from `works_gutenberg.jsonl` is treated as source data for future passage indexing. The MVP work-level index drops the raw `text` field before writing to OpenSearch so search responses and stored document sources stay small.
+
 ## Retrieval Methods
 
 | Method | Status |

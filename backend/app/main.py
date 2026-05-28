@@ -9,7 +9,7 @@ from fastapi import Request
 from opensearchpy.exceptions import NotFoundError, OpenSearchException
 
 from .config import get_settings
-from .opensearch_client import get_client
+from .opensearch_client import EMBEDDING_LOOKUP_SOURCE_EXCLUDES, SEARCH_SOURCE_EXCLUDES, get_client
 from .schemas import SearchHit, SearchRequest, SearchResponse, Work
 from .search.bm25 import build_bm25_query
 from .search.dense import build_dense_query
@@ -149,12 +149,14 @@ def hybrid_search(req: SearchRequest) -> SearchResponse:
 def get_work(work_id: str) -> Work:
     client = get_client()
     try:
-        res = client.get(index=get_settings().search_index, id=work_id)
+        res = client.get(
+            index=get_settings().search_index,
+            id=work_id,
+            _source_excludes=SEARCH_SOURCE_EXCLUDES,
+        )
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"work_id '{work_id}' not found") from exc
     source = res["_source"]
-    source.pop("combined_text", None)
-    source.pop("embedding", None)
     return Work.model_validate(source)
 
 
@@ -163,7 +165,11 @@ def similar(work_id: str, size: int = 10) -> SearchResponse:
     client = get_client()
     index = get_settings().search_index
     try:
-        source_doc = client.get(index=index, id=work_id)["_source"]
+        source_doc = client.get(
+            index=index,
+            id=work_id,
+            _source_excludes=EMBEDDING_LOOKUP_SOURCE_EXCLUDES,
+        )["_source"]
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"work_id '{work_id}' not found") from exc
 
@@ -189,7 +195,7 @@ def _dense_similar(client, index: str, work_id: str, embedding: list[float], siz
                 }
             }
         },
-        "_source": {"excludes": ["combined_text", "embedding"]},
+        "_source": {"excludes": SEARCH_SOURCE_EXCLUDES},
     }
     res = client.search(index=index, body=body)
     hits = _similar_hits(res, work_id, "Similar by dense embedding over title, summary, and tags")
@@ -215,7 +221,7 @@ def _text_similar(client, index: str, work_id: str, size: int) -> SearchResponse
                 "min_doc_freq": 1,
             }
         },
-        "_source": {"excludes": ["combined_text", "embedding"]},
+        "_source": {"excludes": SEARCH_SOURCE_EXCLUDES},
     }
     res = client.search(index=index, body=body)
     hits = _similar_hits(res, work_id, "Similar by shared title/summary/tag text (more_like_this)")

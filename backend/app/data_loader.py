@@ -29,7 +29,7 @@ def _actions(docs: Iterable[dict], index: str) -> Iterator[dict]:
             return iter(())
         embeddings = embed_texts(batch_texts)
         for doc, combined_text, emb in zip(batch_docs, batch_texts, embeddings, strict=True):
-            enriched = dict(doc)
+            enriched = {k: v for k, v in doc.items() if k != "text"}
             enriched["combined_text"] = combined_text
             enriched["embedding"] = emb
             yield {

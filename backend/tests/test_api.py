@@ -35,8 +35,8 @@ class FakeClient:
         self.calls.append({"index": index, "body": body})
         return self.responses.pop(0)
 
-    def get(self, *, index: str, id: str) -> dict:
-        self.calls.append({"index": index, "id": id, "body": None})
+    def get(self, *, index: str, id: str, **kwargs) -> dict:
+        self.calls.append({"index": index, "id": id, "body": None, **kwargs})
         return self.get_response
 
 

@@ -1,6 +1,7 @@
 """Dense retrieval query builder (kNN)."""
 from __future__ import annotations
 
+from ..opensearch_client import SEARCH_SOURCE_EXCLUDES
 from ..embeddings import embed_query
 from ..schemas import SearchRequest
 
@@ -56,5 +57,5 @@ def build_dense_query(req: SearchRequest) -> dict:
     return {
         "size": k,
         "query": query,
-        "_source": {"excludes": ["combined_text", "embedding"]},
+        "_source": {"excludes": SEARCH_SOURCE_EXCLUDES},
     }

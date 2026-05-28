@@ -32,6 +32,18 @@ This is acceptable for the MVP. For heavier traffic, move query embedding to one
 - a shared Redis-backed embedding cache,
 - a precomputed popular-query cache.
 
+## Full-Text Dataset Strategy
+
+The optional Project Gutenberg dataset includes raw full text, but the current MVP indexes only work-level title, summary, and metadata. The indexer drops the raw `text` field before writing to OpenSearch, which keeps result payloads and document `_source` size bounded on a small VPS.
+
+The scalable full-text upgrade is a separate passage index:
+
+- `storyseek_works`: one document per work with metadata, summary, tags, and work-level embedding.
+- `storyseek_passages`: many chunk documents per work, each with chunk text, chunk position, `work_id`, and an embedding.
+- Search passages first with BM25/dense/hybrid, aggregate top chunks by `work_id`, then return work-level results with optional matched snippets.
+
+This keeps large books out of single-document scoring and makes dense retrieval more meaningful because embeddings represent short passages rather than entire works.
+
 ## Indexing and Rebuilds
 
 The indexer writes to a new versioned index and swaps the alias only after document count validation succeeds. This gives a simple rollback path: the previous versioned index can be kept and the alias can be moved back manually if needed.

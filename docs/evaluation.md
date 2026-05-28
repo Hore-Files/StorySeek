@@ -24,6 +24,8 @@ StorySeek includes a small retrieval evaluation harness so ranking changes can b
 
 The current qrels are deterministic and rule-derived from the synthetic metadata. This is useful for regression checks, but it is not a substitute for human relevance labels.
 
+These qrels target `data/sample/works.jsonl` IDs (`w_####`). They do not evaluate the optional Project Gutenberg dataset (`g_####`) until a new hand-labeled or regenerated qrels file is created for that corpus.
+
 ## Metrics
 
 - nDCG@10: graded relevance with rank discount.
