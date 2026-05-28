@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Loader2, X, ChevronDown, ChevronUp, BookOpen, Layers, Theater, Star, AlertTriangle, Users, Lightbulb, Target, Award, Moon, Sun } from 'lucide-react';
 import StoryCard from './components/StoryCard';
 import SimilarStories from './components/SimilarStories';
@@ -50,6 +50,12 @@ const DEFAULT_FILTER_CATEGORIES = [
     options: ["General", "Teen", "Mature"],
   },
   {
+    id: 'languages',
+    label: 'Language',
+    icon: BookOpen,
+    options: ["English"],
+  },
+  {
     id: 'exclude',
     label: 'Exclude Warnings',
     icon: AlertTriangle,
@@ -66,6 +72,7 @@ const FACET_OPTION_KEYS = {
   statuses: 'statuses',
   length_buckets: 'length_buckets',
   audiences: 'audience_ratings',
+  languages: 'languages',
   exclude: 'content_warnings',
 };
 
@@ -106,10 +113,10 @@ function FilterCategory({ category, selected, onChange }) {
           padding: '11px 14px', background: open ? 'rgba(60,104,66,0.06)' : '#fff',
           border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.2s',
         }}
-        className={open ? 'ss-filter-open' : 'ss-filter-closed'}
+        className={`${open ? 'ss-filter-open' : 'ss-filter-closed'} ${danger ? 'ss-filter-danger-toggle' : ''}`}
       >
-        <Icon size={16} color={danger ? '#b45309' : 'var(--color-primary)'} strokeWidth={2} />
-        <span style={{
+        <Icon className={danger ? 'ss-filter-danger-icon' : ''} size={16} color={danger ? '#b45309' : 'var(--color-primary)'} strokeWidth={2} />
+        <span className={danger ? 'ss-filter-danger-label' : ''} style={{
           flex: 1, textAlign: 'left', fontSize: 11, fontWeight: 700,
           textTransform: 'uppercase', letterSpacing: '0.08em',
           color: danger ? '#92400e' : 'var(--color-on-surface)',
@@ -137,7 +144,7 @@ function FilterCategory({ category, selected, onChange }) {
                   <button
                   key={opt}
                   onClick={() => onChange(isActive ? selected.filter(i => i !== opt) : [...selected, opt])}
-                  className={isActive ? (danger ? '' : 'ss-chip-active') : 'ss-chip-inactive'}
+                  className={isActive ? (danger ? 'ss-chip-danger-active' : 'ss-chip-active') : (danger ? 'ss-chip-danger-inactive' : 'ss-chip-inactive')}
                   style={{
                     padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
                     cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
@@ -165,7 +172,7 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     formats: [], genres: [], tropes: [], themes: [],
-    statuses: [], length_buckets: [], audiences: [], exclude: [],
+    statuses: [], length_buckets: [], audiences: [], languages: [], exclude: [],
   });
   const [facetOptions, setFacetOptions] = useState(null);
 
@@ -179,6 +186,7 @@ export default function App() {
   const [detailError, setDetailError] = useState(null);
   const [searchHovered, setSearchHovered] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const lastAutoFilters = useRef(JSON.stringify({ filters, mode }));
 
   const totalActive = Object.values(filters).flat().length;
   const filterCategories = useMemo(() => DEFAULT_FILTER_CATEGORIES
@@ -214,7 +222,7 @@ export default function App() {
   const updateFilter = (key) => (val) => setFilters(prev => ({ ...prev, [key]: val }));
   const clearAll = () => setFilters({
     formats: [], genres: [], tropes: [], themes: [],
-    statuses: [], length_buckets: [], audiences: [], exclude: [],
+    statuses: [], length_buckets: [], audiences: [], languages: [], exclude: [],
   });
 
   const handleSearch = async (e, targetPage = 1, targetSize = size) => {
@@ -243,7 +251,7 @@ export default function App() {
         statuses: filters.statuses,
         length_buckets: filters.length_buckets,
         audience_ratings: filters.audiences,
-        languages: [],
+        languages: filters.languages,
       }
     };
 
@@ -262,6 +270,21 @@ export default function App() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const filterKey = JSON.stringify({ filters, mode });
+    if (lastAutoFilters.current === filterKey) return;
+    lastAutoFilters.current = filterKey;
+    if (!results || !query.trim() || loading || detailHit || similarWork) return;
+
+    const timer = window.setTimeout(() => {
+      handleSearch(null, 1, size);
+    }, 320);
+
+    return () => window.clearTimeout(timer);
+    // Auto-refresh should only react to filter/mode changes; query changes still require an explicit search.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, mode]);
 
   const handleSeeDetails = async (hit) => {
     if (!hit?.work?.work_id) return;
@@ -513,32 +536,35 @@ export default function App() {
         <div style={{ display: 'flex', gap: 48, paddingBottom: 80, alignItems: 'flex-start' }}>
 
           {/* ── Sidebar Filters ── */}
-          <aside style={{ width: 240, flexShrink: 0, position: 'sticky', top: 88 }}>
-            <div className="ss-surface" style={{
+          <aside className="ss-filter-sidebar" style={{ width: 240, flexShrink: 0, position: 'sticky', top: 88 }}>
+            <div className="ss-surface ss-filter-shell" style={{
               backgroundColor: '#fff',
               borderRadius: 20,
               boxShadow: '0 20px 40px -10px rgba(0,0,0,0.06)',
               padding: '20px 16px',
               transition: 'background-color 0.3s ease',
             }}>
-              <div style={{ marginBottom: 16 }}>
+              <div className="ss-filter-header" style={{ marginBottom: 16 }}>
                 <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 16, color: 'var(--color-on-surface)', marginBottom: 4 }}>
                   Filters
                 </h2>
                 <p style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Refine your search results</p>
               </div>
 
-              {filterCategories.map(cat => (
-                <FilterCategory
-                  key={cat.id}
-                  category={cat}
-                  selected={filters[cat.id]}
-                  onChange={updateFilter(cat.id)}
-                />
-              ))}
+              <div className="ss-filter-scroll">
+                {filterCategories.map(cat => (
+                  <FilterCategory
+                    key={cat.id}
+                    category={cat}
+                    selected={filters[cat.id]}
+                    onChange={updateFilter(cat.id)}
+                  />
+                ))}
+              </div>
 
               {totalActive > 0 && (
                 <button
+                  className="ss-filter-clear"
                   onClick={clearAll}
                   style={{
                     width: '100%', padding: '10px', marginTop: 8,

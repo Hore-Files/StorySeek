@@ -177,6 +177,85 @@
   color: #0a3817 !important;
 }
 
+[data-theme="dark"] .ss-filter-danger-toggle {
+  background: rgba(251, 146, 60, 0.08) !important;
+}
+
+[data-theme="dark"] .ss-filter-danger-label {
+  color: #fdba74 !important;
+}
+
+[data-theme="dark"] .ss-filter-danger-icon {
+  color: #fb923c !important;
+}
+
+[data-theme="dark"] .ss-chip-danger-inactive {
+  background-color: rgba(124, 45, 18, 0.34) !important;
+  border-color: rgba(251, 146, 60, 0.34) !important;
+  color: #fed7aa !important;
+}
+
+[data-theme="dark"] .ss-chip-danger-active {
+  background-color: #fb923c !important;
+  border-color: #fb923c !important;
+  color: #1f1308 !important;
+}
+
+/* Filter Sidebar */
+.ss-filter-sidebar {
+  max-height: calc(100vh - 104px);
+}
+
+.ss-filter-shell {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 104px);
+  min-height: 0;
+}
+
+.ss-filter-header {
+  flex: 0 0 auto;
+}
+
+.ss-filter-scroll {
+  flex: 1 1 auto;
+  margin: 0 -6px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 6px 2px;
+  scrollbar-gutter: stable;
+}
+
+.ss-filter-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ss-filter-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ss-filter-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(60,104,66,0.22);
+  border-radius: 9999px;
+}
+
+.ss-filter-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(60,104,66,0.38);
+}
+
+.ss-filter-clear {
+  flex: 0 0 auto;
+}
+
+[data-theme="dark"] .ss-filter-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(122, 140, 169, 0.35);
+}
+
+[data-theme="dark"] .ss-filter-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(188, 199, 221, 0.52);
+}
+
 /* Pagination Design System */
 .ss-pagination-btn {
   border: 1px solid var(--color-border-light);
