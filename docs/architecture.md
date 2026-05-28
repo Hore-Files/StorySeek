@@ -15,8 +15,6 @@ StorySeek is a shared-corpus retrieval system. Many users search the same fictio
 
 `frontend-react/` is the primary UI. It renders search input, mode selection, filters, pagination, result cards, explanations, dark mode, and "More Like This" traversal. It calls FastAPI over HTTP.
 
-`frontend/streamlit_app.py` is a legacy fallback UI.
-
 ### FastAPI backend
 
 The backend is stateless. Endpoints:

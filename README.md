@@ -1,10 +1,10 @@
 # StorySeek
 
-StorySeek is a trope-aware retrieval system for discovering fiction works through natural-language descriptions, metadata filters, and semantic similarity. It is built for an Information Retrieval / Web Search course project in Category A: Project / System Development.
+StorySeek is an Information Retrieval system for fiction discovery. It retrieves Project Gutenberg works from natural-language queries using lexical search, dense vector search, metadata filters, and hybrid rank fusion.
 
-The system is a search and discovery layer over a fiction catalog. It is not a reading platform and does not scrape copyrighted archives.
+Live demo: https://storyseek.dev
 
-## Team Members
+## Team
 
 | Name | Student ID |
 |---|---|
@@ -13,66 +13,53 @@ The system is a search and discovery layer over a fiction catalog. It is not a r
 | Muhammad Wendy Fyfo Anggara | 2306223906 |
 | Muhammad Fayyed As Shidqi | 2306230395 |
 
-## Implemented Features
+## What It Implements
 
-- BM25 keyword search with field boosts over title, summary, genres, themes, tropes, relationships, and combined text.
-- Dense semantic search with `sentence-transformers/all-MiniLM-L6-v2` and OpenSearch `knn_vector`.
-- Hybrid search using Reciprocal Rank Fusion over BM25 and dense rankings.
-- Gutenberg content search over passage chunks, grouped back to work-level results with matched passages.
-- Dataset-aware faceted filters for format, genre, trope, theme, status, audience rating, length, language, and content-warning exclusion.
-- Rule-based "Why this matched" explanations.
-- Semantic "More Like This" endpoint using stored document embeddings, with text fallback.
-- React + Vite frontend as the primary UI; Streamlit remains as a legacy fallback.
-- Evaluation harness for nDCG@10, MRR@10, and Recall@20.
-- Local load test script and prototype load test report.
-- Docker Compose stack for OpenSearch, backend, work indexer, chunk indexer, and frontend.
+- BM25 retrieval with boosted fields.
+- Dense retrieval with `sentence-transformers/all-MiniLM-L6-v2` and OpenSearch `knn_vector`.
+- Hybrid retrieval with Reciprocal Rank Fusion.
+- Passage-level Gutenberg content search via `storyseek_chunks`.
+- Work-level metadata, facets, details, and "More Like This" via `storyseek_works`.
+- React/Vite frontend and stateless FastAPI backend.
+- Evaluation with nDCG@10, MRR@10, and Recall@20.
+- Docker Compose stack for OpenSearch, indexers, API, and frontend.
 
 ## Architecture
 
 ```text
-+------------------+       HTTP/JSON       +---------------+       OpenSearch DSL / kNN       +----------------+
-| React Frontend   | --------------------> | FastAPI API   | ------------------------------> | OpenSearch 2.x |
-| Vite, port 3001  | <-------------------- | Stateless     | <------------------------------ | BM25 + vectors |
-+------------------+                       +---------------+                                  +----------------+
+React/Vite UI -> FastAPI API -> OpenSearch
+                         |-> storyseek_works  (metadata/details/facets)
+                         |-> storyseek_chunks (passage retrieval)
 ```
 
-- `frontend-react/`: primary UI for search, filters, pagination, dark mode, and similar-story traversal.
-- `backend/app/`: FastAPI service, retrieval query builders, embeddings, index client, and schemas.
-- `scripts/build_index.py`: versioned index builder with alias swap for safer rebuilds.
-- `scripts/build_chunk_index.py`: chunk index builder for Gutenberg passage retrieval.
-- `data/sample/works.jsonl`: deterministic synthetic catalog with 300 works.
-- `data/sample/works_gutenberg.jsonl`: Project Gutenberg catalog stored with Git LFS.
-- `data/processed/gutenberg_chunks.jsonl`: generated Gutenberg passage chunks.
-- `data/eval/`: evaluation queries and rule-derived qrels.
+Main paths:
 
-See `docs/architecture.md`, `docs/scalability.md`, `docs/evaluation.md`, and `docs/deployment.md` for details.
+- `frontend-react/`: primary UI.
+- `backend/app/`: FastAPI service and retrieval logic.
+- `backend/app/search/`: BM25, dense, hybrid, and content-search query builders.
+- `scripts/build_index.py`: work index builder with versioned alias swap.
+- `scripts/build_chunk_index.py`: Gutenberg chunk index builder.
+- `data/sample/works_gutenberg.jsonl`: 500-work Gutenberg dataset, stored with Git LFS.
+- `data/processed/gutenberg_chunks.jsonl`: generated passage chunks.
+- `reports/gutenberg_comparison.md`: latest retrieval comparison.
 
-## Dataset
-The dataset used in this project is sourced from:
-- [Project Gutenberg Dataset](https://huggingface.co/datasets/Despina/project_gutenberg)
-- [Gutendex](https://gutendex.com/)
+## Run With Docker
 
-## Quickstart: Docker Compose
-
-Prerequisites: Docker Desktop.
+Prerequisites: Docker Desktop and Git LFS data pulled.
 
 ```bash
 docker compose up --build
 ```
 
-This starts:
+Services:
 
-- OpenSearch on http://localhost:9200
-- one-shot work indexer that builds a versioned index and swaps the `storyseek_works` alias
-- one-shot chunk indexer that builds the `storyseek_chunks` content index
-- FastAPI on http://localhost:8000
-- React UI on http://localhost:3001
+- React UI: http://localhost:3001
+- FastAPI: http://localhost:8000
+- OpenSearch: http://localhost:9200
 
-The first run can take several minutes because the backend image installs ML dependencies and the indexer downloads the embedding model.
+The first run can take several minutes because embeddings are generated for the work and chunk indexes.
 
-## Quickstart: Local Development
-
-Prerequisites: Python 3.12, Node.js 18+, Docker Desktop.
+## Local Development
 
 ```powershell
 docker compose up -d opensearch
@@ -81,23 +68,12 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r backend\requirements.txt
 
-python scripts\build_index.py --recreate
+python scripts\build_index.py --recreate --path data\sample\works_gutenberg.jsonl
+python scripts\build_chunk_index.py --recreate
 uvicorn backend.app.main:app --reload --port 8000
 ```
 
-To rebuild the Project Gutenberg work index manually:
-
-```powershell
-python scripts\build_index.py --recreate --path data\sample\works_gutenberg.jsonl
-```
-
-To rebuild the Gutenberg chunk index manually:
-
-```powershell
-python scripts\build_chunk_index.py --recreate
-```
-
-In a second terminal:
+In another terminal:
 
 ```powershell
 cd frontend-react
@@ -105,42 +81,13 @@ npm install
 npm run dev -- --host 127.0.0.1 --port 3001
 ```
 
-Open:
+## Evaluation
 
-- React UI: http://localhost:3001
-- API docs: http://localhost:8000/docs
-
-Optional legacy UI:
-
-```powershell
-streamlit run frontend\streamlit_app.py
-```
-
-## Evaluation and Load Test
-
-Run retrieval evaluation after OpenSearch is indexed and the backend is running:
-
-```bash
-python scripts/run_eval.py --modes bm25 dense hybrid
-```
-
-This writes:
-
-- `reports/metrics.json`
-- `reports/comparison.md`
-
-Run local prototype load testing:
-
-```bash
-python scripts/load_test.py --modes bm25 hybrid
-```
-
-This writes `reports/load_test_results.md`. These results are local prototype evidence, not production capacity guarantees.
-
-For the Project Gutenberg corpus:
+Run the current chunk-based Gutenberg evaluation:
 
 ```bash
 python scripts/run_eval.py \
+  --backend https://storyseek.dev/api \
   --endpoint /search-content \
   --queries data/eval/gutenberg_queries.jsonl \
   --qrels data/eval/gutenberg_qrels.csv \
@@ -149,28 +96,37 @@ python scripts/run_eval.py \
   --modes bm25 dense hybrid
 ```
 
-The Gutenberg qrels are LLM-assisted pooled judgments over BM25, dense, and hybrid candidates.
+Latest chunk-based results:
+
+| Mode | mean nDCG@10 | mean MRR@10 | mean Recall@20 |
+|---|---:|---:|---:|
+| BM25 | 0.1958 | 0.4345 | 0.3010 |
+| Dense | 0.4261 | 0.7470 | 0.5799 |
+| Hybrid | 0.4221 | 0.7304 | 0.5058 |
+
+The Gutenberg qrels are LLM-assisted pooled judgments, so the numbers are prototype evidence rather than benchmark-grade human annotations.
 
 ## Configuration
 
-Copy `.env.example` to `.env` if you want to override defaults.
+Runtime configuration is supplied through environment variables, Docker Compose, or GitHub Actions secrets. This repository intentionally does not track `.env` example files.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `OPENSEARCH_URL` | `http://localhost:9200` | OpenSearch endpoint for local backend |
-| `OPENSEARCH_INDEX_ALIAS` | `storyseek_works` | Search alias used by API and indexer |
-| `OPENSEARCH_USERNAME` | empty | Optional OpenSearch username |
-| `OPENSEARCH_PASSWORD` | empty | Optional OpenSearch password |
-| `BACKEND_URL` | `http://localhost:8000` | Used by legacy Streamlit |
-| `VITE_BACKEND_URL` | `http://localhost:8000` | Used by React frontend |
-| `EMBEDDING_MODEL_NAME` | `sentence-transformers/all-MiniLM-L6-v2` | Dense retrieval model |
-| `DATA_PATH` | `data/sample/works_gutenberg.jsonl` | Dataset path used by the work indexer in Docker |
-| `OPENSEARCH_CHUNKS_INDEX` | `storyseek_chunks` | Chunk index used by `/search-content` |
+Important variables:
 
-## Notes for Graders
+| Variable | Purpose |
+|---|---|
+| `OPENSEARCH_URL` | OpenSearch endpoint. |
+| `OPENSEARCH_INDEX_ALIAS` | Work search alias, default `storyseek_works`. |
+| `OPENSEARCH_CHUNKS_INDEX` | Chunk index, default `storyseek_chunks`. |
+| `OPENSEARCH_USERNAME` / `OPENSEARCH_PASSWORD` | Optional OpenSearch auth. |
+| `EMBEDDING_MODEL_NAME` | Sentence-transformer model. |
+| `DATA_PATH` | Work dataset path for the indexer. |
+| `VITE_BACKEND_URL` | Browser-facing API URL for React builds. |
 
-- StorySeek is fundamentally an IR system: BM25, dense retrieval, metadata filters, passage retrieval, and rank fusion are the core path.
-- No LLM is required for search or explanation.
-- The legacy synthetic dataset is retained for regression and demos, but the primary corpus is Project Gutenberg-derived.
-- `works_gutenberg.jsonl` is indexed as work-level metadata, while `gutenberg_chunks.jsonl` powers content retrieval through `/search-content`.
-- Synthetic evaluation qrels are rule-derived from metadata; Gutenberg qrels are LLM-assisted pooled judgments. Both should be treated as prototype evidence, not benchmark-grade human-labeled labels.
+Deployment writes its runtime env file on the VPS from GitHub Actions secrets; no checked-in `.env` file is required.
+
+## Notes
+
+- Search and explanations do not require an LLM at runtime.
+- The primary corpus is Project Gutenberg-derived; the synthetic dataset remains only as a legacy regression fixture.
+- The production demo is a single-node VPS prototype, not a production benchmark.
+- For deeper details, see `docs/architecture.md`, `docs/scalability.md`, `docs/evaluation.md`, and `docs/deployment.md`.

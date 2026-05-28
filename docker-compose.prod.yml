@@ -67,7 +67,6 @@ services:
     environment:
       OPENSEARCH_URL: http://opensearch:9200
       OPENSEARCH_INDEX_ALIAS: ${OPENSEARCH_INDEX_ALIAS:-storyseek_works}
-      BACKEND_URL: http://localhost/api
       SENTENCE_TRANSFORMERS_HOME: /models
     expose:
       - "8000"

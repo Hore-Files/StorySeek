@@ -17,8 +17,6 @@ class Settings(BaseSettings):
 
     embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
 
-    backend_url: str = "http://localhost:8000"
-
     data_path: Path = (
         Path(__file__).resolve().parents[2] / "data" / "sample" / "works.jsonl"
     )

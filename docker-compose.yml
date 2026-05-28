@@ -66,7 +66,6 @@ services:
     environment:
       OPENSEARCH_URL: http://opensearch:9200
       OPENSEARCH_INDEX_ALIAS: storyseek_works
-      BACKEND_URL: http://localhost:8000
       SENTENCE_TRANSFORMERS_HOME: /models
     ports:
       - "8000:8000"

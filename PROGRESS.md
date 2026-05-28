@@ -10,7 +10,7 @@ StorySeek is now a working IR prototype with three retrieval modes:
 - Dense semantic retrieval using `sentence-transformers/all-MiniLM-L6-v2` and OpenSearch `knn_vector`.
 - Hybrid retrieval using Reciprocal Rank Fusion over BM25 and dense results.
 
-The primary UI is the React/Vite app in `frontend-react/`. The Streamlit app remains available as a legacy fallback. The backend is FastAPI, stateless, and backed by OpenSearch.
+The primary UI is the React/Vite app in `frontend-react/`. The backend is FastAPI, stateless, and backed by OpenSearch.
 
 The deployed demo is available at `http://167.172.88.176:8080/`. The active demo corpus is Project Gutenberg-derived data, not the original synthetic sample.
 
@@ -48,12 +48,11 @@ The deployed demo is available at `http://167.172.88.176:8080/`. The active demo
 - Supports search, mode selection, filters, warning exclusion, pagination, dark mode, result cards, explanations, and "More Like This".
 - Result cards now show source and work IDs, making it easy to verify whether results come from Project Gutenberg (`g_*`) or legacy synthetic data (`w_*`).
 - Filter options are loaded from the backend `/facets` endpoint, with static fallback values only if the endpoint is unavailable.
-- Streamlit UI is still present as a legacy demo surface.
 
 ### Reproducibility and Local Stack
 
 - Python runtime is standardized on Python 3.12.
-- Backend requirements include FastAPI, OpenSearch client, `httpx`, pytest, Streamlit, and sentence-transformers.
+- Backend requirements include FastAPI, OpenSearch client, `httpx`, pytest, and sentence-transformers.
 - Docker Compose now defines OpenSearch, work indexer, chunk indexer, API, and frontend services.
 - Pytest collection is scoped to `backend/tests`, so utility scripts are not collected as tests.
 
@@ -65,9 +64,9 @@ The deployed demo is available at `http://167.172.88.176:8080/`. The active demo
   - `reports/gutenberg_metrics.json`
   - `reports/gutenberg_comparison.md`
 - Latest Gutenberg prototype results:
-  - BM25: nDCG@10 0.7492, MRR@10 1.0000, Recall@20 0.7303
-  - Dense: nDCG@10 0.8040, MRR@10 1.0000, Recall@20 0.7830
-  - Hybrid: nDCG@10 0.8082, MRR@10 1.0000, Recall@20 1.0000
+  - BM25: nDCG@10 0.1958, MRR@10 0.4345, Recall@20 0.3010
+  - Dense: nDCG@10 0.4261, MRR@10 0.7470, Recall@20 0.5799
+  - Hybrid: nDCG@10 0.4221, MRR@10 0.7304, Recall@20 0.5058
 - `scripts/load_test.py` runs lightweight concurrent local load tests.
 - `reports/load_test_results.md` contains local prototype load-test evidence.
 
@@ -84,21 +83,15 @@ The deployed demo is available at `http://167.172.88.176:8080/`. The active demo
 - Local MVP retrieval system: about 85-90 percent complete.
 - Full course deliverable: about 70-75 percent complete.
 
-The main missing pieces are production verification for chunk search, refreshed chunk-based evaluation artifacts, final load-test evidence, and demo/video walkthrough polish.
+The main missing pieces are final load-test evidence, deploy-time chunk indexing optimization, and demo/video walkthrough polish.
 
 ## Recommended Next Commits
 
-1. Verify deployed chunk retrieval:
-   - confirm `/api/search-content` returns `matched_passages`
-   - confirm frontend cards show passage snippets
-   - confirm `/api/works/{work_id}` works for returned Gutenberg IDs
-
-2. Improve evaluation evidence:
+1. Improve evaluation evidence:
    - expand qrels with a defensible judged subset
    - document that current Gutenberg qrels are LLM-assisted pooled judgments, not official human annotations
-   - rerun BM25, dense, and hybrid against `/search-content`
 
-3. Final course polish:
+2. Final course polish:
    - write demo video script
    - add deployment notes and rollback notes
    - refresh load-test evidence after the final indexing shape is stable
