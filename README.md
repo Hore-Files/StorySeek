@@ -122,6 +122,19 @@ python scripts/load_test.py --modes bm25 hybrid
 
 This writes `reports/load_test_results.md`. These results are local prototype evidence, not production capacity guarantees.
 
+For the optional Project Gutenberg corpus:
+
+```bash
+python scripts/run_eval.py \
+  --queries data/eval/gutenberg_queries.jsonl \
+  --qrels data/eval/gutenberg_qrels.csv \
+  --out reports/gutenberg_metrics.json \
+  --comparison-out reports/gutenberg_comparison.md \
+  --modes bm25 dense hybrid
+```
+
+The Gutenberg qrels are LLM-assisted pooled judgments over BM25, dense, and hybrid candidates.
+
 ## Configuration
 
 Copy `.env.example` to `.env` if you want to override defaults.
@@ -143,4 +156,4 @@ Copy `.env.example` to `.env` if you want to override defaults.
 - No LLM is required for search or explanation.
 - The default dataset is synthetic by design because trope, relationship, status, and content-warning metadata are central to the project.
 - `works_gutenberg.jsonl` is an optional real/public corpus. It is currently indexed as work-level title, summary, and metadata retrieval; raw full text is kept out of OpenSearch `_source` responses and embeddings for the MVP.
-- Evaluation qrels are rule-derived from metadata and should be treated as reproducible prototype evidence, not a benchmark-grade human-labeled dataset.
+- Synthetic evaluation qrels are rule-derived from metadata; Gutenberg qrels are LLM-assisted pooled judgments. Both should be treated as prototype evidence, not benchmark-grade human-labeled labels.

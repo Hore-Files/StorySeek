@@ -1,0 +1,225 @@
+{
+  "overall": [
+    {
+      "method": "bm25",
+      "mean_nDCG@10": 0.7492,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 0.7303,
+      "n_queries": 8
+    },
+    {
+      "method": "dense",
+      "mean_nDCG@10": 0.804,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 0.783,
+      "n_queries": 8
+    },
+    {
+      "method": "hybrid",
+      "mean_nDCG@10": 0.8082,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 1.0,
+      "n_queries": 8
+    }
+  ],
+  "per_mode": {
+    "bm25": [
+      {
+        "query_id": "gq_001",
+        "query": "christmas ghost story about redemption and moral change",
+        "retrieved": 20,
+        "nDCG@10": 0.8829,
+        "MRR@10": 1.0,
+        "Recall@20": 0.8889
+      },
+      {
+        "query_id": "gq_002",
+        "query": "king arthur knights chivalric adventure",
+        "retrieved": 20,
+        "nDCG@10": 0.7242,
+        "MRR@10": 1.0,
+        "Recall@20": 0.625
+      },
+      {
+        "query_id": "gq_003",
+        "query": "detective mystery involving murder and deception",
+        "retrieved": 20,
+        "nDCG@10": 0.706,
+        "MRR@10": 1.0,
+        "Recall@20": 0.7692
+      },
+      {
+        "query_id": "gq_004",
+        "query": "coming of age school adventure",
+        "retrieved": 20,
+        "nDCG@10": 0.7294,
+        "MRR@10": 1.0,
+        "Recall@20": 0.5714
+      },
+      {
+        "query_id": "gq_005",
+        "query": "historical romance adventure with political intrigue",
+        "retrieved": 20,
+        "nDCG@10": 0.6541,
+        "MRR@10": 1.0,
+        "Recall@20": 0.5385
+      },
+      {
+        "query_id": "gq_006",
+        "query": "supernatural ghost tales horror",
+        "retrieved": 20,
+        "nDCG@10": 0.9003,
+        "MRR@10": 1.0,
+        "Recall@20": 0.9
+      },
+      {
+        "query_id": "gq_007",
+        "query": "sea adventure survival and travel",
+        "retrieved": 20,
+        "nDCG@10": 0.7543,
+        "MRR@10": 1.0,
+        "Recall@20": 0.8571
+      },
+      {
+        "query_id": "gq_008",
+        "query": "children fantasy adventure with animals",
+        "retrieved": 20,
+        "nDCG@10": 0.6425,
+        "MRR@10": 1.0,
+        "Recall@20": 0.6923
+      }
+    ],
+    "dense": [
+      {
+        "query_id": "gq_001",
+        "query": "christmas ghost story about redemption and moral change",
+        "retrieved": 20,
+        "nDCG@10": 0.8892,
+        "MRR@10": 1.0,
+        "Recall@20": 0.8889
+      },
+      {
+        "query_id": "gq_002",
+        "query": "king arthur knights chivalric adventure",
+        "retrieved": 20,
+        "nDCG@10": 0.9192,
+        "MRR@10": 1.0,
+        "Recall@20": 0.75
+      },
+      {
+        "query_id": "gq_003",
+        "query": "detective mystery involving murder and deception",
+        "retrieved": 20,
+        "nDCG@10": 0.8804,
+        "MRR@10": 1.0,
+        "Recall@20": 0.9231
+      },
+      {
+        "query_id": "gq_004",
+        "query": "coming of age school adventure",
+        "retrieved": 20,
+        "nDCG@10": 0.5874,
+        "MRR@10": 1.0,
+        "Recall@20": 0.6429
+      },
+      {
+        "query_id": "gq_005",
+        "query": "historical romance adventure with political intrigue",
+        "retrieved": 20,
+        "nDCG@10": 0.6982,
+        "MRR@10": 1.0,
+        "Recall@20": 0.5385
+      },
+      {
+        "query_id": "gq_006",
+        "query": "supernatural ghost tales horror",
+        "retrieved": 20,
+        "nDCG@10": 0.9283,
+        "MRR@10": 1.0,
+        "Recall@20": 0.9
+      },
+      {
+        "query_id": "gq_007",
+        "query": "sea adventure survival and travel",
+        "retrieved": 20,
+        "nDCG@10": 0.8639,
+        "MRR@10": 1.0,
+        "Recall@20": 0.9286
+      },
+      {
+        "query_id": "gq_008",
+        "query": "children fantasy adventure with animals",
+        "retrieved": 20,
+        "nDCG@10": 0.6655,
+        "MRR@10": 1.0,
+        "Recall@20": 0.6923
+      }
+    ],
+    "hybrid": [
+      {
+        "query_id": "gq_001",
+        "query": "christmas ghost story about redemption and moral change",
+        "retrieved": 20,
+        "nDCG@10": 0.8865,
+        "MRR@10": 1.0,
+        "Recall@20": 1.0
+      },
+      {
+        "query_id": "gq_002",
+        "query": "king arthur knights chivalric adventure",
+        "retrieved": 20,
+        "nDCG@10": 0.8833,
+        "MRR@10": 1.0,
+        "Recall@20": 1.0
+      },
+      {
+        "query_id": "gq_003",
+        "query": "detective mystery involving murder and deception",
+        "retrieved": 20,
+        "nDCG@10": 0.8074,
+        "MRR@10": 1.0,
+        "Recall@20": 1.0
+      },
+      {
+        "query_id": "gq_004",
+        "query": "coming of age school adventure",
+        "retrieved": 20,
+        "nDCG@10": 0.7938,
+        "MRR@10": 1.0,
+        "Recall@20": 1.0
+      },
+      {
+        "query_id": "gq_005",
+        "query": "historical romance adventure with political intrigue",
+        "retrieved": 20,
+        "nDCG@10": 0.6382,
+        "MRR@10": 1.0,
+        "Recall@20": 1.0
+      },
+      {
+        "query_id": "gq_006",
+        "query": "supernatural ghost tales horror",
+        "retrieved": 20,
+        "nDCG@10": 0.8543,
+        "MRR@10": 1.0,
+        "Recall@20": 1.0
+      },
+      {
+        "query_id": "gq_007",
+        "query": "sea adventure survival and travel",
+        "retrieved": 20,
+        "nDCG@10": 0.8972,
+        "MRR@10": 1.0,
+        "Recall@20": 1.0
+      },
+      {
+        "query_id": "gq_008",
+        "query": "children fantasy adventure with animals",
+        "retrieved": 20,
+        "nDCG@10": 0.7048,
+        "MRR@10": 1.0,
+        "Recall@20": 1.0
+      }
+    ]
+  }
+}
