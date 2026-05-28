@@ -1,0 +1,129 @@
+{
+  "overall": [
+    {
+      "method": "bm25",
+      "mean_nDCG@10": 0.6159,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 0.0144,
+      "n_queries": 4
+    },
+    {
+      "method": "dense",
+      "mean_nDCG@10": 0.6425,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 0.02,
+      "n_queries": 4
+    },
+    {
+      "method": "hybrid",
+      "mean_nDCG@10": 0.6721,
+      "mean_MRR@10": 1.0,
+      "mean_Recall@20": 0.0202,
+      "n_queries": 4
+    }
+  ],
+  "per_mode": {
+    "bm25": [
+      {
+        "query_id": "gq_001",
+        "query": "detective mystery with burglary and hidden identity",
+        "retrieved": 20,
+        "nDCG@10": 0.7141,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0174
+      },
+      {
+        "query_id": "gq_002",
+        "query": "science fiction about telepathy and extrasensory perception",
+        "retrieved": 20,
+        "nDCG@10": 0.4523,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0203
+      },
+      {
+        "query_id": "gq_003",
+        "query": "adventure story for young readers set in Africa",
+        "retrieved": 20,
+        "nDCG@10": 0.6667,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0063
+      },
+      {
+        "query_id": "gq_004",
+        "query": "short ghost story with supernatural elements",
+        "retrieved": 20,
+        "nDCG@10": 0.6307,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0137
+      }
+    ],
+    "dense": [
+      {
+        "query_id": "gq_001",
+        "query": "detective mystery with burglary and hidden identity",
+        "retrieved": 20,
+        "nDCG@10": 0.6464,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0214
+      },
+      {
+        "query_id": "gq_002",
+        "query": "science fiction about telepathy and extrasensory perception",
+        "retrieved": 20,
+        "nDCG@10": 0.405,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0203
+      },
+      {
+        "query_id": "gq_003",
+        "query": "adventure story for young readers set in Africa",
+        "retrieved": 20,
+        "nDCG@10": 0.7182,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0075
+      },
+      {
+        "query_id": "gq_004",
+        "query": "short ghost story with supernatural elements",
+        "retrieved": 20,
+        "nDCG@10": 0.8004,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0309
+      }
+    ],
+    "hybrid": [
+      {
+        "query_id": "gq_001",
+        "query": "detective mystery with burglary and hidden identity",
+        "retrieved": 20,
+        "nDCG@10": 0.7141,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0241
+      },
+      {
+        "query_id": "gq_002",
+        "query": "science fiction about telepathy and extrasensory perception",
+        "retrieved": 20,
+        "nDCG@10": 0.5199,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0203
+      },
+      {
+        "query_id": "gq_003",
+        "query": "adventure story for young readers set in Africa",
+        "retrieved": 20,
+        "nDCG@10": 0.6667,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0071
+      },
+      {
+        "query_id": "gq_004",
+        "query": "short ghost story with supernatural elements",
+        "retrieved": 20,
+        "nDCG@10": 0.7875,
+        "MRR@10": 1.0,
+        "Recall@20": 0.0292
+      }
+    ]
+  }
+}

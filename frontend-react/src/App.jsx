@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Loader2, X, ChevronDown, ChevronUp, BookOpen, Layers, Theater, Star, AlertTriangle, Users, Lightbulb, Target, Award, Moon, Sun } from 'lucide-react';
 import StoryCard from './components/StoryCard';
 import SimilarStories from './components/SimilarStories';
+import StoryDetails from './components/StoryDetails';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
-const FILTER_CATEGORIES = [
+const DEFAULT_FILTER_CATEGORIES = [
   {
     id: 'formats',
     label: 'Format',
@@ -37,10 +38,22 @@ const FILTER_CATEGORIES = [
     options: ["Complete", "Ongoing", "Hiatus"],
   },
   {
+    id: 'length_buckets',
+    label: 'Length',
+    icon: BookOpen,
+    options: ["short", "medium", "long"],
+  },
+  {
     id: 'audiences',
     label: 'Audience',
     icon: Users,
     options: ["General", "Teen", "Mature"],
+  },
+  {
+    id: 'languages',
+    label: 'Language',
+    icon: BookOpen,
+    options: ["English"],
   },
   {
     id: 'exclude',
@@ -50,6 +63,18 @@ const FILTER_CATEGORIES = [
     danger: true,
   },
 ];
+
+const FACET_OPTION_KEYS = {
+  formats: 'formats',
+  genres: 'genres',
+  tropes: 'tropes',
+  themes: 'themes',
+  statuses: 'statuses',
+  length_buckets: 'length_buckets',
+  audiences: 'audience_ratings',
+  languages: 'languages',
+  exclude: 'content_warnings',
+};
 
 // ─── Floating Badge ────────────────────────────────────────────────────────────
 function FloatingBadge({ Icon, color, style }) {
@@ -88,10 +113,10 @@ function FilterCategory({ category, selected, onChange }) {
           padding: '11px 14px', background: open ? 'rgba(60,104,66,0.06)' : '#fff',
           border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.2s',
         }}
-        className={open ? 'ss-filter-open' : 'ss-filter-closed'}
+        className={`${open ? 'ss-filter-open' : 'ss-filter-closed'} ${danger ? 'ss-filter-danger-toggle' : ''}`}
       >
-        <Icon size={16} color={danger ? '#b45309' : 'var(--color-primary)'} strokeWidth={2} />
-        <span style={{
+        <Icon className={danger ? 'ss-filter-danger-icon' : ''} size={16} color={danger ? '#b45309' : 'var(--color-primary)'} strokeWidth={2} />
+        <span className={danger ? 'ss-filter-danger-label' : ''} style={{
           flex: 1, textAlign: 'left', fontSize: 11, fontWeight: 700,
           textTransform: 'uppercase', letterSpacing: '0.08em',
           color: danger ? '#92400e' : 'var(--color-on-surface)',
@@ -119,7 +144,7 @@ function FilterCategory({ category, selected, onChange }) {
                   <button
                   key={opt}
                   onClick={() => onChange(isActive ? selected.filter(i => i !== opt) : [...selected, opt])}
-                  className={isActive ? (danger ? '' : 'ss-chip-active') : 'ss-chip-inactive'}
+                  className={isActive ? (danger ? 'ss-chip-danger-active' : 'ss-chip-active') : (danger ? 'ss-chip-danger-inactive' : 'ss-chip-inactive')}
                   style={{
                     padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
                     cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
@@ -147,20 +172,58 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     formats: [], genres: [], tropes: [], themes: [],
-    statuses: [], audiences: [], exclude: [],
+    statuses: [], length_buckets: [], audiences: [], languages: [], exclude: [],
   });
+  const [facetOptions, setFacetOptions] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [similarWork, setSimilarWork] = useState(null);
+  const [detailHit, setDetailHit] = useState(null);
+  const [detailWork, setDetailWork] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(null);
   const [searchHovered, setSearchHovered] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const lastAutoFilters = useRef(JSON.stringify({ filters, mode }));
 
   const totalActive = Object.values(filters).flat().length;
+  const filterCategories = useMemo(() => DEFAULT_FILTER_CATEGORIES
+    .map(cat => {
+      const facetKey = FACET_OPTION_KEYS[cat.id];
+      const hasDynamicOptions = facetOptions && Object.prototype.hasOwnProperty.call(facetOptions, facetKey);
+      const dynamicOptions = facetOptions?.[facetKey] || [];
+      const options = hasDynamicOptions ? dynamicOptions : cat.options;
+      return { ...cat, options };
+    })
+    .filter(cat => cat.options.length > 0), [facetOptions]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchFacets() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/facets`);
+        if (!res.ok) throw new Error('Failed to fetch facets');
+        const data = await res.json();
+        if (!cancelled) setFacetOptions(data);
+      } catch {
+        if (!cancelled) setFacetOptions(null);
+      }
+    }
+
+    fetchFacets();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const updateFilter = (key) => (val) => setFilters(prev => ({ ...prev, [key]: val }));
-  const clearAll = () => setFilters({ formats: [], genres: [], tropes: [], themes: [], statuses: [], audiences: [], exclude: [] });
+  const clearAll = () => setFilters({
+    formats: [], genres: [], tropes: [], themes: [],
+    statuses: [], length_buckets: [], audiences: [], languages: [], exclude: [],
+  });
 
   const handleSearch = async (e, targetPage = 1, targetSize = size) => {
     if (e) e.preventDefault();
@@ -168,6 +231,9 @@ export default function App() {
     setLoading(true);
     setError(null);
     setSimilarWork(null);
+    setDetailHit(null);
+    setDetailWork(null);
+    setDetailError(null);
     setPage(targetPage);
     setSize(targetSize);
 
@@ -183,14 +249,15 @@ export default function App() {
         tropes: filters.tropes,
         themes: filters.themes,
         statuses: filters.statuses,
-        length_buckets: [],
+        length_buckets: filters.length_buckets,
         audience_ratings: filters.audiences,
-        languages: [],
+        languages: filters.languages,
       }
     };
 
     try {
-      const res = await fetch(`${BACKEND_URL}/search`, {
+      const endpoint = '/search-content';
+      const res = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -202,6 +269,49 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const filterKey = JSON.stringify({ filters, mode });
+    if (lastAutoFilters.current === filterKey) return;
+    lastAutoFilters.current = filterKey;
+    if (!results || !query.trim() || loading || detailHit || similarWork) return;
+
+    const timer = window.setTimeout(() => {
+      handleSearch(null, 1, size);
+    }, 320);
+
+    return () => window.clearTimeout(timer);
+    // Auto-refresh should only react to filter/mode changes; query changes still require an explicit search.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, mode]);
+
+  const handleSeeDetails = async (hit) => {
+    if (!hit?.work?.work_id) return;
+    setDetailHit(hit);
+    setDetailWork(hit.work);
+    setDetailError(null);
+    setDetailLoading(true);
+    setSimilarWork(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/works/${encodeURIComponent(hit.work.work_id)}`);
+      if (!res.ok) throw new Error('Failed to load story details');
+      setDetailWork(await res.json());
+    } catch (err) {
+      setDetailError(err.message);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleMoreLikeThis = (work) => {
+    setSimilarWork(work);
+    setDetailHit(null);
+    setDetailWork(null);
+    setDetailError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -259,6 +369,34 @@ export default function App() {
 
       {/* ── Main ── */}
       <main style={{ flex: 1, maxWidth: 1440, margin: '0 auto', width: '100%', padding: '0 10px' }}>
+        {detailHit && (
+          <>
+            {detailError && (
+              <div className="ss-error-box" style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '14px 20px', borderRadius: 16, margin: '24px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <X size={18} /><span style={{ fontWeight: 500 }}>{detailError}. Showing cached search data.</span>
+              </div>
+            )}
+            {detailLoading && (
+              <div className="ss-detail-loading">
+                <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                Loading complete story details...
+              </div>
+            )}
+            <StoryDetails
+              hit={detailHit}
+              work={detailWork}
+              onBack={() => {
+                setDetailHit(null);
+                setDetailWork(null);
+                setDetailError(null);
+              }}
+              onMoreLikeThis={handleMoreLikeThis}
+            />
+          </>
+        )}
+
+        {!detailHit && (
+          <>
 
         {/* ── Hero Section ── */}
         <section className="ss-hero-section" style={{
@@ -341,12 +479,14 @@ export default function App() {
                   onMouseLeave={() => setSearchHovered(false)}
                   className="ss-btn-primary"
                   style={{
-                    backgroundColor: searchHovered ? '#8fc292' : '#A5D6A7', color: '#fff',
+                    backgroundColor: searchHovered ? '#325e39' : '#3c6842', color: '#fff',
                     padding: '10px 24px', borderRadius: 9999,
                     fontSize: 14, fontWeight: 700, border: 'none',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', gap: 6,
-                    fontFamily: 'inherit', transition: 'background-color 0.2s, opacity 0.2s',
+                    fontFamily: 'inherit',
+                    boxShadow: searchHovered ? '0 10px 22px rgba(60,104,66,0.32)' : '0 6px 14px rgba(60,104,66,0.24)',
+                    transition: 'background-color 0.32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease',
                     opacity: loading ? 0.7 : 1,
                   }}
                 >
@@ -396,32 +536,35 @@ export default function App() {
         <div style={{ display: 'flex', gap: 48, paddingBottom: 80, alignItems: 'flex-start' }}>
 
           {/* ── Sidebar Filters ── */}
-          <aside style={{ width: 240, flexShrink: 0, position: 'sticky', top: 88 }}>
-            <div className="ss-surface" style={{
+          <aside className="ss-filter-sidebar" style={{ width: 240, flexShrink: 0, position: 'sticky', top: 88 }}>
+            <div className="ss-surface ss-filter-shell" style={{
               backgroundColor: '#fff',
               borderRadius: 20,
               boxShadow: '0 20px 40px -10px rgba(0,0,0,0.06)',
               padding: '20px 16px',
               transition: 'background-color 0.3s ease',
             }}>
-              <div style={{ marginBottom: 16 }}>
+              <div className="ss-filter-header" style={{ marginBottom: 16 }}>
                 <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 16, color: 'var(--color-on-surface)', marginBottom: 4 }}>
                   Filters
                 </h2>
                 <p style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Refine your search results</p>
               </div>
 
-              {FILTER_CATEGORIES.map(cat => (
-                <FilterCategory
-                  key={cat.id}
-                  category={cat}
-                  selected={filters[cat.id]}
-                  onChange={updateFilter(cat.id)}
-                />
-              ))}
+              <div className="ss-filter-scroll">
+                {filterCategories.map(cat => (
+                  <FilterCategory
+                    key={cat.id}
+                    category={cat}
+                    selected={filters[cat.id]}
+                    onChange={updateFilter(cat.id)}
+                  />
+                ))}
+              </div>
 
               {totalActive > 0 && (
                 <button
+                  className="ss-filter-clear"
                   onClick={clearAll}
                   style={{
                     width: '100%', padding: '10px', marginTop: 8,
@@ -459,7 +602,8 @@ export default function App() {
                 work={similarWork}
                 backendUrl={BACKEND_URL}
                 onClose={() => setSimilarWork(null)}
-                onMoreLikeThis={setSimilarWork}
+                onMoreLikeThis={handleMoreLikeThis}
+                onSeeDetails={handleSeeDetails}
               />
             )}
 
@@ -511,7 +655,7 @@ export default function App() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                   {results.hits?.map((hit, i) => (
-                    <StoryCard key={i} hit={hit} onMoreLikeThis={w => setSimilarWork(w)} />
+                    <StoryCard key={i} hit={hit} onMoreLikeThis={handleMoreLikeThis} onSeeDetails={handleSeeDetails} />
                   ))}
                 </div>
 
@@ -520,16 +664,12 @@ export default function App() {
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 40, paddingBottom: 40 }}>
                     <button
                       disabled={page === 1}
+                      className="ss-pagination-btn ss-pagination-btn-nav"
                       onClick={() => handleSearch(null, page - 1, size)}
                       style={{
                         padding: '10px 20px', borderRadius: 9999,
-                        border: '1px solid var(--color-border-light)',
-                        backgroundColor: page === 1 ? 'transparent' : '#fff',
-                        color: page === 1 ? '#cbd5e1' : 'var(--color-on-surface)',
                         fontSize: 12, fontWeight: 700,
                         cursor: page === 1 ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: page === 1 ? 'none' : '0 4px 12px rgba(0,0,0,0.03)',
                       }}
                     >
                       Previous
@@ -543,15 +683,11 @@ export default function App() {
                           return (
                             <button
                               key={pageNum}
+                              className={`ss-pagination-btn ss-pagination-btn-number ${page === pageNum ? 'ss-pagination-btn-active ss-btn-primary' : ''}`}
                               onClick={() => handleSearch(null, pageNum, size)}
                               style={{
                                 width: 36, height: 36, borderRadius: 9999,
-                                border: page === pageNum ? 'none' : '1px solid var(--color-border-light)',
-                                backgroundColor: page === pageNum ? 'var(--color-primary)' : '#fff',
-                                color: page === pageNum ? '#fff' : 'var(--color-on-surface)',
                                 fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
                               }}
                             >
                               {pageNum}
@@ -567,16 +703,12 @@ export default function App() {
 
                     <button
                       disabled={page === Math.ceil(results.total / size)}
+                      className="ss-pagination-btn ss-pagination-btn-nav"
                       onClick={() => handleSearch(null, page + 1, size)}
                       style={{
                         padding: '10px 20px', borderRadius: 9999,
-                        border: '1px solid var(--color-border-light)',
-                        backgroundColor: page === Math.ceil(results.total / size) ? 'transparent' : '#fff',
-                        color: page === Math.ceil(results.total / size) ? '#cbd5e1' : 'var(--color-on-surface)',
                         fontSize: 12, fontWeight: 700,
                         cursor: page === Math.ceil(results.total / size) ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: page === Math.ceil(results.total / size) ? 'none' : '0 4px 12px rgba(0,0,0,0.03)',
                       }}
                     >
                       Next
@@ -596,6 +728,8 @@ export default function App() {
             )}
           </section>
         </div>
+          </>
+        )}
       </main>
 
       {/* ── Footer ── */}

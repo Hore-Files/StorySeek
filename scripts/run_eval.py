@@ -1,7 +1,7 @@
-"""Run retrieval evaluation against a running StorySeek backend.
+﻿"""Run retrieval evaluation against a running StorySeek backend.
 
-Computes nDCG@10, MRR@10, and Recall@20 for each query in
-data/eval/queries.jsonl using judgments from data/eval/qrels.csv.
+Computes nDCG@10, MRR@10, and Recall@20 for each query using judgments
+from a qrels CSV file.
 
 Prereqs:
     - OpenSearch is running and the index is built (scripts/build_index.py).
@@ -11,6 +11,7 @@ Usage:
     python scripts/run_eval.py
     python scripts/run_eval.py --backend http://localhost:8000 --k-recall 20
     python scripts/run_eval.py --modes bm25 dense hybrid
+    python scripts/run_eval.py --queries data/eval/queries_gutenberg.jsonl --qrels data/eval/qrels_gutenberg.csv
 """
 from __future__ import annotations
 
@@ -25,15 +26,15 @@ from pathlib import Path
 import requests
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-QUERIES = REPO_ROOT / "data" / "eval" / "queries.jsonl"
-QRELS = REPO_ROOT / "data" / "eval" / "qrels.csv"
-OUT = REPO_ROOT / "reports" / "metrics.json"
-COMPARISON_OUT = REPO_ROOT / "reports" / "comparison.md"
+DEFAULT_QUERIES = REPO_ROOT / "data" / "eval" / "queries.jsonl"
+DEFAULT_QRELS = REPO_ROOT / "data" / "eval" / "qrels.csv"
+DEFAULT_OUT = REPO_ROOT / "reports" / "metrics.json"
+DEFAULT_COMPARISON_OUT = REPO_ROOT / "reports" / "comparison.md"
 DEFAULT_MODES = ["bm25", "dense", "hybrid"]
 
 
-def _load_queries() -> list[dict]:
-    return [json.loads(line) for line in QUERIES.read_text(encoding="utf-8").splitlines() if line.strip()]
+def _load_queries(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def _load_qrels(path: Path) -> dict[str, dict[str, int]]:
@@ -103,11 +104,20 @@ def _mean(rows: list[dict], key: str) -> float:
     return sum(float(row[key]) for row in rows) / len(rows)
 
 
+def _qrels_note(args: argparse.Namespace) -> str:
+    if "gutenberg" in args.qrels.name.lower():
+        return "- Current qrels are LLM-assisted pooled judgments over Project Gutenberg candidates."
+    return "- Current qrels are rule-derived from metadata, so dense semantic matches can be under-credited."
+
+
 def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args: argparse.Namespace) -> None:
     lines = [
         "# StorySeek Retrieval Comparison",
         "",
         "This report compares retrieval modes on the same query set and qrels.",
+        "",
+        f"- Queries: `{args.queries.as_posix()}`",
+        f"- Qrels: `{args.qrels.as_posix()}`",
         "",
         "| Mode | mean nDCG@{} | mean MRR@{} | mean Recall@{} | Queries |".format(
             args.k_ndcg,
@@ -135,7 +145,7 @@ def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args
             "- BM25 is the lexical baseline with field boosting and metadata filters.",
             "- Dense uses sentence-transformer embeddings and OpenSearch kNN search.",
             "- Hybrid uses Reciprocal Rank Fusion over BM25 and Dense rankings.",
-            "- Current qrels are rule-derived from metadata, so dense semantic matches can be under-credited.",
+            _qrels_note(args),
             "",
             "## Per-query Results",
             "",
@@ -166,20 +176,29 @@ def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args
             )
         lines.append("")
 
-    COMPARISON_OUT.write_text("\n".join(lines), encoding="utf-8")
+    args.comparison_out.parent.mkdir(parents=True, exist_ok=True)
+    args.comparison_out.write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run StorySeek retrieval eval.")
     parser.add_argument("--backend", default=os.environ.get("BACKEND_URL", "http://localhost:8000"))
-    parser.add_argument("--qrels", type=Path, default=QRELS, help="Path to qrels CSV file.")
+    parser.add_argument("--queries", type=Path, default=DEFAULT_QUERIES, help="Path to queries JSONL file.")
+    parser.add_argument("--qrels", type=Path, default=DEFAULT_QRELS, help="Path to qrels CSV file.")
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="Path for metrics JSON output.")
+    parser.add_argument(
+        "--comparison-out",
+        type=Path,
+        default=DEFAULT_COMPARISON_OUT,
+        help="Path for comparison Markdown output.",
+    )
     parser.add_argument("--k-ndcg", type=int, default=10)
     parser.add_argument("--k-mrr", type=int, default=10)
     parser.add_argument("--k-recall", type=int, default=20)
     parser.add_argument("--modes", nargs="+", default=DEFAULT_MODES, choices=DEFAULT_MODES)
     args = parser.parse_args()
 
-    queries = _load_queries()
+    queries = _load_queries(args.queries)
     qrels = _load_qrels(args.qrels)
 
     all_overall: list[dict] = []
@@ -239,14 +258,14 @@ def main() -> None:
             f"mean_Recall@{args.k_recall}={row[f'mean_Recall@{args.k_recall}']:.4f}"
         )
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(
         json.dumps({"overall": all_overall, "per_mode": per_mode}, indent=2),
         encoding="utf-8",
     )
     _write_comparison(all_overall, per_mode, args)
-    print(f"\nWrote {OUT}")
-    print(f"Wrote {COMPARISON_OUT}")
+    print(f"\nWrote {args.out}")
+    print(f"Wrote {args.comparison_out}")
 
 
 if __name__ == "__main__":

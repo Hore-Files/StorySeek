@@ -64,6 +64,8 @@ def main() -> None:
             f"Alias '{alias}' was not changed."
         )
 
+    # OpenSearch `indices.exists` returns true for aliases too. Only delete the
+    # alias name as a legacy direct index when no alias targets currently exist.
     if index_exists(alias) and not old_targets:
         if not args.recreate:
             raise SystemExit(

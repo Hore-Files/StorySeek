@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, AlertCircle, FileText } from 'lucide-react';
 
-export default function StoryCard({ hit, onMoreLikeThis }) {
+export default function StoryCard({ hit, onMoreLikeThis, onSeeDetails }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isExpHovered, setIsExpHovered] = useState(false);
-  const { work, score, explanation } = hit;
-  const warnings = (work.content_warnings || []).filter(w => w !== 'none');
+  const { work, score, explanation, matched_passages = [] } = hit;
+  const warnings = (work.content_warnings || []).filter(w => w !== 'none' && w !== 'unknown');
+  const topPassage = matched_passages[0];
+  const isGutenberg = work.source === 'project_gutenberg';
 
   const pillStyle = (bg, color) => ({
     padding: '5px 14px',
@@ -44,11 +46,14 @@ export default function StoryCard({ hit, onMoreLikeThis }) {
       transition: 'background-color 0.3s ease',
     }}>
       {/* ── Header: Title + Meta Tags ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-        <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 700, color: 'var(--color-on-surface)', marginBottom: 4 }}>
             {work.title}
           </h3>
+          <p style={{ fontSize: 13, color: 'var(--color-on-surface-variant)', marginBottom: 8 }}>
+            by {work.creator}
+          </p>
           {score !== undefined && (
             <p style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Relevance score: {score.toFixed(2)}</p>
           )}
@@ -61,13 +66,23 @@ export default function StoryCard({ hit, onMoreLikeThis }) {
       </div>
 
       {/* ── Summary ── */}
-      <p style={{
+      <p className="ss-card-summary" style={{
+        width: '100%',
+        maxWidth: 'none',
+        alignSelf: 'stretch',
         color: 'var(--color-on-surface-variant)', lineHeight: 1.65,
         fontSize: 15, display: '-webkit-box', WebkitLineClamp: 3,
         WebkitBoxOrient: 'vertical', overflow: 'hidden',
       }}>
         {work.summary}
       </p>
+
+      {topPassage && (
+        <div className="ss-matched-passage">
+          <p className="ss-matched-passage-label">Matched Passage</p>
+          <p>{topPassage.text_chunk}</p>
+        </div>
+      )}
 
       {/* ── Tags: Tropes & Themes ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -83,7 +98,7 @@ export default function StoryCard({ hit, onMoreLikeThis }) {
         )}
         {work.themes?.length > 0 && (
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#c1c9be', marginBottom: 6 }}>Themes</p>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#c1c9be', marginBottom: 6 }}>{isGutenberg ? 'Subjects' : 'Themes'}</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {work.themes.map((t, i) => (
                 <span key={i} className="ss-tag-theme" style={tagStyle('rgba(219,234,254,0.7)', '#1e40af')}>{t}</span>
@@ -93,7 +108,7 @@ export default function StoryCard({ hit, onMoreLikeThis }) {
         )}
         {work.genres?.length > 0 && (
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#c1c9be', marginBottom: 6 }}>Genres</p>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#c1c9be', marginBottom: 6 }}>{isGutenberg ? 'Topics' : 'Genres'}</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {work.genres.map((g, i) => (
                 <span key={i} className="ss-tag-genre" style={tagStyle('rgba(193,198,215,0.3)', '#414754')}>{g}</span>
@@ -151,22 +166,45 @@ export default function StoryCard({ hit, onMoreLikeThis }) {
           </div>
         )}
 
-        {/* More Like This button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        {/* Card actions */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => onSeeDetails?.(hit)}
+            className="ss-btn-secondary"
+            style={{
+              border: '1px solid var(--color-border-light)',
+              padding: '9px 18px',
+              borderRadius: 9999,
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <FileText size={14} />
+            See Details
+          </button>
           <button
             onClick={() => onMoreLikeThis(work)}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             className="ss-btn-primary"
-            style={{
-              backgroundColor: isHovered ? '#8fc292' : '#A5D6A7', color: '#fff',
+              style={{
+              backgroundColor: isHovered ? '#325e39' : '#3c6842', color: '#fff',
               border: 'none', padding: '9px 22px', borderRadius: 9999,
               fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
               cursor: 'pointer', fontFamily: 'inherit',
-              boxShadow: '0 4px 12px rgba(165,214,167,0.35)',
-              transition: 'background-color 0.2s, opacity 0.2s',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              boxShadow: isHovered ? '0 10px 22px rgba(60,104,66,0.32)' : '0 6px 14px rgba(60,104,66,0.24)',
+              transition: 'background-color 0.32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease',
             }}
           >
+            <Sparkles size={14} />
             More Like This
           </button>
         </div>

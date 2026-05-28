@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     opensearch_index_alias: str = "storyseek_works"
     # Backward-compatible override for older local .env files.
     opensearch_index: str | None = None
+    opensearch_chunks_index: str = "storyseek_chunks"
     opensearch_username: str | None = None
     opensearch_password: str | None = None
 
