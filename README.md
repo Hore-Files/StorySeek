@@ -44,6 +44,11 @@ The system is a search and discovery layer over a fiction catalog. It is not a r
 
 See `docs/architecture.md`, `docs/scalability.md`, `docs/evaluation.md`, and `docs/deployment.md` for details.
 
+## Dataset
+The dataset used in this project is sourced from:
+- [Project Gutenberg Dataset](https://huggingface.co/datasets/Despina/project_gutenberg)
+- [Gutendex](https://gutendex.com/)
+
 ## Quickstart: Docker Compose
 
 Prerequisites: Docker Desktop.
