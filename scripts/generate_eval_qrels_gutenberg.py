@@ -3,6 +3,10 @@
 The Gutenberg query set is subject/topic oriented, because public-domain book
 metadata does not include StorySeek's synthetic trope labels.
 
+This is a bootstrap helper. The main checked-in Gutenberg evaluation file,
+`data/eval/gutenberg_qrels.csv`, is LLM-assisted pooled qrels and should not be
+overwritten by this script unless intentionally requested with `--out`.
+
 Usage:
     python scripts/generate_eval_qrels_gutenberg.py
     python scripts/generate_eval_qrels_gutenberg.py --works data/sample/works_gutenberg.jsonl
@@ -16,9 +20,9 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_QUERIES = REPO_ROOT / "data" / "eval" / "queries_gutenberg.jsonl"
+DEFAULT_QUERIES = REPO_ROOT / "data" / "eval" / "gutenberg_queries.jsonl"
 DEFAULT_WORKS = REPO_ROOT / "data" / "sample" / "works_gutenberg.jsonl"
-DEFAULT_QRELS = REPO_ROOT / "data" / "eval" / "qrels_gutenberg.csv"
+DEFAULT_QRELS = REPO_ROOT / "data" / "eval" / "gutenberg_qrels_rule.csv"
 
 
 def _load_jsonl(path: Path) -> list[dict]:

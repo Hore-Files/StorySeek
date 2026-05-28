@@ -18,13 +18,14 @@ The system is a search and discovery layer over a fiction catalog. It is not a r
 - BM25 keyword search with field boosts over title, summary, genres, themes, tropes, relationships, and combined text.
 - Dense semantic search with `sentence-transformers/all-MiniLM-L6-v2` and OpenSearch `knn_vector`.
 - Hybrid search using Reciprocal Rank Fusion over BM25 and dense rankings.
+- Gutenberg content search over passage chunks, grouped back to work-level results with matched passages.
 - Dataset-aware faceted filters for format, genre, trope, theme, status, audience rating, length, language, and content-warning exclusion.
 - Rule-based "Why this matched" explanations.
 - Semantic "More Like This" endpoint using stored document embeddings, with text fallback.
 - React + Vite frontend as the primary UI; Streamlit remains as a legacy fallback.
 - Evaluation harness for nDCG@10, MRR@10, and Recall@20.
 - Local load test script and prototype load test report.
-- Docker Compose stack for OpenSearch, backend, indexer, and frontend.
+- Docker Compose stack for OpenSearch, backend, work indexer, chunk indexer, and frontend.
 
 ## Architecture
 
@@ -38,8 +39,10 @@ The system is a search and discovery layer over a fiction catalog. It is not a r
 - `frontend-react/`: primary UI for search, filters, pagination, dark mode, and similar-story traversal.
 - `backend/app/`: FastAPI service, retrieval query builders, embeddings, index client, and schemas.
 - `scripts/build_index.py`: versioned index builder with alias swap for safer rebuilds.
+- `scripts/build_chunk_index.py`: chunk index builder for Gutenberg passage retrieval.
 - `data/sample/works.jsonl`: deterministic synthetic catalog with 300 works.
-- `data/sample/works_gutenberg.jsonl`: optional Project Gutenberg catalog stored with Git LFS.
+- `data/sample/works_gutenberg.jsonl`: Project Gutenberg catalog stored with Git LFS.
+- `data/processed/gutenberg_chunks.jsonl`: generated Gutenberg passage chunks.
 - `data/eval/`: evaluation queries and rule-derived qrels.
 
 See `docs/architecture.md`, `docs/scalability.md`, `docs/evaluation.md`, and `docs/deployment.md` for details.
@@ -60,7 +63,8 @@ docker compose up --build
 This starts:
 
 - OpenSearch on http://localhost:9200
-- one-shot indexer that builds a versioned index and swaps the `storyseek_works` alias
+- one-shot work indexer that builds a versioned index and swaps the `storyseek_works` alias
+- one-shot chunk indexer that builds the `storyseek_chunks` content index
 - FastAPI on http://localhost:8000
 - React UI on http://localhost:3001
 
@@ -81,10 +85,16 @@ python scripts\build_index.py --recreate
 uvicorn backend.app.main:app --reload --port 8000
 ```
 
-To index the optional Project Gutenberg dataset instead:
+To rebuild the Project Gutenberg work index manually:
 
 ```powershell
 python scripts\build_index.py --recreate --path data\sample\works_gutenberg.jsonl
+```
+
+To rebuild the Gutenberg chunk index manually:
+
+```powershell
+python scripts\build_chunk_index.py --recreate
 ```
 
 In a second terminal:
@@ -127,10 +137,11 @@ python scripts/load_test.py --modes bm25 hybrid
 
 This writes `reports/load_test_results.md`. These results are local prototype evidence, not production capacity guarantees.
 
-For the optional Project Gutenberg corpus:
+For the Project Gutenberg corpus:
 
 ```bash
 python scripts/run_eval.py \
+  --endpoint /search-content \
   --queries data/eval/gutenberg_queries.jsonl \
   --qrels data/eval/gutenberg_qrels.csv \
   --out reports/gutenberg_metrics.json \
@@ -153,12 +164,13 @@ Copy `.env.example` to `.env` if you want to override defaults.
 | `BACKEND_URL` | `http://localhost:8000` | Used by legacy Streamlit |
 | `VITE_BACKEND_URL` | `http://localhost:8000` | Used by React frontend |
 | `EMBEDDING_MODEL_NAME` | `sentence-transformers/all-MiniLM-L6-v2` | Dense retrieval model |
-| `DATA_PATH` | `data/sample/works.jsonl` | Dataset path used by the indexer |
+| `DATA_PATH` | `data/sample/works_gutenberg.jsonl` | Dataset path used by the work indexer in Docker |
+| `OPENSEARCH_CHUNKS_INDEX` | `storyseek_chunks` | Chunk index used by `/search-content` |
 
 ## Notes for Graders
 
-- StorySeek is fundamentally an IR system: BM25, dense retrieval, metadata filters, and rank fusion are the core path.
+- StorySeek is fundamentally an IR system: BM25, dense retrieval, metadata filters, passage retrieval, and rank fusion are the core path.
 - No LLM is required for search or explanation.
-- The default dataset is synthetic by design because trope, relationship, status, and content-warning metadata are central to the project.
-- `works_gutenberg.jsonl` is an optional real/public corpus. It is currently indexed as work-level title, summary, and metadata retrieval; raw full text is kept out of OpenSearch `_source` responses and embeddings for the MVP.
+- The legacy synthetic dataset is retained for regression and demos, but the primary corpus is Project Gutenberg-derived.
+- `works_gutenberg.jsonl` is indexed as work-level metadata, while `gutenberg_chunks.jsonl` powers content retrieval through `/search-content`.
 - Synthetic evaluation qrels are rule-derived from metadata; Gutenberg qrels are LLM-assisted pooled judgments. Both should be treated as prototype evidence, not benchmark-grade human-labeled labels.

@@ -4,14 +4,14 @@ Computes nDCG@10, MRR@10, and Recall@20 for each query using judgments
 from a qrels CSV file.
 
 Prereqs:
-    - OpenSearch is running and the index is built (scripts/build_index.py).
+    - OpenSearch is running and the needed index is built.
     - The FastAPI backend is reachable at BACKEND_URL (default http://localhost:8000).
 
 Usage:
     python scripts/run_eval.py
     python scripts/run_eval.py --backend http://localhost:8000 --k-recall 20
     python scripts/run_eval.py --modes bm25 dense hybrid
-    python scripts/run_eval.py --queries data/eval/queries_gutenberg.jsonl --qrels data/eval/qrels_gutenberg.csv
+    python scripts/run_eval.py --endpoint /search-content --queries data/eval/gutenberg_queries.jsonl --qrels data/eval/gutenberg_qrels.csv
 """
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ def recall_at_k(retrieved_ids: list[str], qrel: dict[str, int], k: int) -> float
     return hit / len(relevant)
 
 
-def run_query(backend: str, query: dict, size: int, mode: str) -> list[str]:
+def run_query(backend: str, endpoint: str, query: dict, size: int, mode: str) -> list[str]:
     payload = {
         "query": query["query"],
         "mode": mode,
@@ -94,7 +94,8 @@ def run_query(backend: str, query: dict, size: int, mode: str) -> list[str]:
             "languages": [],
         },
     }
-    resp = requests.post(f"{backend}/search", json=payload, timeout=30)
+    endpoint = endpoint if endpoint.startswith("/") else f"/{endpoint}"
+    resp = requests.post(f"{backend.rstrip('/')}{endpoint}", json=payload, timeout=30)
     resp.raise_for_status()
     body = resp.json()
     return [h["work"]["work_id"] for h in body["hits"]]
@@ -118,6 +119,7 @@ def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args
         "",
         f"- Queries: `{args.queries.as_posix()}`",
         f"- Qrels: `{args.qrels.as_posix()}`",
+        f"- Endpoint: `{args.endpoint}`",
         "",
         "| Mode | mean nDCG@{} | mean MRR@{} | mean Recall@{} | Queries |".format(
             args.k_ndcg,
@@ -145,6 +147,7 @@ def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args
             "- BM25 is the lexical baseline with field boosting and metadata filters.",
             "- Dense uses sentence-transformer embeddings and OpenSearch kNN search.",
             "- Hybrid uses Reciprocal Rank Fusion over BM25 and Dense rankings.",
+            "- `/search` evaluates work-level retrieval; `/search-content` evaluates passage/chunk retrieval grouped back to works.",
             _qrels_note(args),
             "",
             "## Per-query Results",
@@ -183,6 +186,12 @@ def _write_comparison(overall: list[dict], per_mode: dict[str, list[dict]], args
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run StorySeek retrieval eval.")
     parser.add_argument("--backend", default=os.environ.get("BACKEND_URL", "http://localhost:8000"))
+    parser.add_argument(
+        "--endpoint",
+        default="/search",
+        choices=["/search", "/search-content", "search", "search-content"],
+        help="Backend search endpoint to evaluate.",
+    )
     parser.add_argument("--queries", type=Path, default=DEFAULT_QUERIES, help="Path to queries JSONL file.")
     parser.add_argument("--qrels", type=Path, default=DEFAULT_QRELS, help="Path to qrels CSV file.")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="Path for metrics JSON output.")
@@ -197,6 +206,7 @@ def main() -> None:
     parser.add_argument("--k-recall", type=int, default=20)
     parser.add_argument("--modes", nargs="+", default=DEFAULT_MODES, choices=DEFAULT_MODES)
     args = parser.parse_args()
+    args.endpoint = args.endpoint if args.endpoint.startswith("/") else f"/{args.endpoint}"
 
     queries = _load_queries(args.queries)
     qrels = _load_qrels(args.qrels)
@@ -212,6 +222,7 @@ def main() -> None:
             try:
                 retrieved = run_query(
                     args.backend,
+                    args.endpoint,
                     q,
                     size=max(args.k_recall, args.k_ndcg),
                     mode=mode,
@@ -260,7 +271,17 @@ def main() -> None:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
-        json.dumps({"overall": all_overall, "per_mode": per_mode}, indent=2),
+        json.dumps(
+            {
+                "backend": args.backend,
+                "endpoint": args.endpoint,
+                "queries": args.queries.as_posix(),
+                "qrels": args.qrels.as_posix(),
+                "overall": all_overall,
+                "per_mode": per_mode,
+            },
+            indent=2,
+        ),
         encoding="utf-8",
     )
     _write_comparison(all_overall, per_mode, args)
