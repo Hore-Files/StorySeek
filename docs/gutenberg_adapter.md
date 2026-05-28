@@ -168,17 +168,20 @@ Generate Gutenberg qrels:
 python scripts/generate_eval_qrels_gutenberg.py
 ```
 
+This generator creates a rule-derived bootstrap file by default. The main checked-in Gutenberg report uses `data/eval/gutenberg_qrels.csv`, which is LLM-assisted pooled qrels.
+
 Run evaluation:
 
 ```powershell
 python scripts/run_eval.py `
-  --queries data/eval/queries_gutenberg.jsonl `
-  --qrels data/eval/qrels_gutenberg.csv `
-  --out reports/metrics_gutenberg.json `
-  --comparison-out reports/comparison_gutenberg.md
+  --endpoint /search-content `
+  --queries data/eval/gutenberg_queries.jsonl `
+  --qrels data/eval/gutenberg_qrels.csv `
+  --out reports/gutenberg_metrics.json `
+  --comparison-out reports/gutenberg_comparison.md
 ```
 
-The evaluation report notes Gutenberg-specific qrels separately from the synthetic baseline.
+The evaluation report notes Gutenberg-specific qrels separately from the synthetic baseline. Use `/search-content` for the current frontend retrieval path; use `/search` only when intentionally evaluating work-level metadata retrieval.
 
 ## Frontend Setup
 

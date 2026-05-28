@@ -12,4 +12,3 @@ env/
 .DS_Store
 data/synthetic/
 *.log
-.streamlit/secrets.toml

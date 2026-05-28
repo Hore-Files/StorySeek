@@ -55,13 +55,14 @@ By default, the frontend calls:
 http://localhost:8000
 ```
 
-To use a different backend URL, create `frontend-react/.env`:
+To use a different backend URL for a one-off local run, set `VITE_BACKEND_URL` in the shell before starting Vite:
 
-```env
-VITE_BACKEND_URL=http://localhost:8000
+```powershell
+$env:VITE_BACKEND_URL = "http://localhost:8000"
+npm.cmd run dev
 ```
 
-Then restart `npm.cmd run dev`.
+Production builds receive `VITE_BACKEND_URL` through Docker build args and GitHub Actions secrets.
 
 ## Build and Lint
 

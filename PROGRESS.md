@@ -1,24 +1,25 @@
 # StorySeek Progress and Next Steps
 
-Snapshot after the Gutenberg data migration, evaluation refresh, deploy setup, and frontend filter cleanup.
+Snapshot after the Gutenberg data migration, content chunk retrieval integration, deploy setup, and frontend filter cleanup.
 
 ## Current State
 
-StorySeek is now a working local IR prototype with three retrieval modes:
+StorySeek is now a working IR prototype with three retrieval modes:
 
 - BM25 lexical retrieval with boosted fields and metadata filters.
 - Dense semantic retrieval using `sentence-transformers/all-MiniLM-L6-v2` and OpenSearch `knn_vector`.
 - Hybrid retrieval using Reciprocal Rank Fusion over BM25 and dense results.
 
-The primary UI is the React/Vite app in `frontend-react/`. The Streamlit app remains available as a legacy fallback. The backend is FastAPI, stateless, and backed by OpenSearch.
+The primary UI is the React/Vite app in `frontend-react/`. The backend is FastAPI, stateless, and backed by OpenSearch.
 
-The deployed demo is available at `http://167.172.88.176:8080/`. The active demo corpus is now Project Gutenberg-derived data, not the original synthetic sample.
+The deployed demo is available at `http://167.172.88.176:8080/`. The active demo corpus is Project Gutenberg-derived data, not the original synthetic sample.
 
 ## Completed
 
 ### Retrieval and Backend
 
-- `POST /search` supports `bm25`, `dense`, and `hybrid` modes.
+- `POST /search` supports work-level `bm25`, `dense`, and `hybrid` modes.
+- `POST /search-content` is the primary frontend search endpoint. It searches Gutenberg content chunks, groups results by `work_id`, loads work metadata, and returns matched passages.
 - `/works/{work_id}` returns work detail records without internal indexing fields.
 - `/similar/{work_id}` uses dense vectors when embeddings are available and falls back to text similarity if needed.
 - `/facets` returns filter values from the active OpenSearch index, so the UI follows the currently indexed corpus.
@@ -30,8 +31,10 @@ The deployed demo is available at `http://167.172.88.176:8080/`. The active demo
 
 - Legacy synthetic dataset: `data/sample/works.jsonl` with 300 deterministic records.
 - Current Gutenberg dataset: `data/sample/works_gutenberg.jsonl` with 500 Project Gutenberg-derived work-level records.
+- Current Gutenberg chunk dataset: `data/processed/gutenberg_chunks.jsonl`, used by `/search-content`.
 - Dataset selection is configurable through `DATA_PATH`, including Docker Compose and deployment scripts.
-- Current indexing is work-level only. Raw Gutenberg text is stripped before records are sent to OpenSearch.
+- Work-level indexing strips raw Gutenberg text before records are sent to OpenSearch.
+- Chunk-level indexing stores cleaned passage chunks in `storyseek_chunks` with embeddings for content retrieval.
 - Evaluation data now includes a small Gutenberg query set and LLM-assisted pooled qrels:
   - `data/eval/gutenberg_queries.jsonl`
   - `data/eval/gutenberg_qrels.csv`
@@ -45,26 +48,25 @@ The deployed demo is available at `http://167.172.88.176:8080/`. The active demo
 - Supports search, mode selection, filters, warning exclusion, pagination, dark mode, result cards, explanations, and "More Like This".
 - Result cards now show source and work IDs, making it easy to verify whether results come from Project Gutenberg (`g_*`) or legacy synthetic data (`w_*`).
 - Filter options are loaded from the backend `/facets` endpoint, with static fallback values only if the endpoint is unavailable.
-- Streamlit UI is still present as a legacy demo surface.
 
 ### Reproducibility and Local Stack
 
 - Python runtime is standardized on Python 3.12.
-- Backend requirements include FastAPI, OpenSearch client, `httpx`, pytest, Streamlit, and sentence-transformers.
-- Docker Compose now defines OpenSearch, indexer, API, and frontend services.
+- Backend requirements include FastAPI, OpenSearch client, `httpx`, pytest, and sentence-transformers.
+- Docker Compose now defines OpenSearch, work indexer, chunk indexer, API, and frontend services.
 - Pytest collection is scoped to `backend/tests`, so utility scripts are not collected as tests.
 
 ### Evaluation and Load Testing
 
 - `scripts/run_eval.py` compares BM25, dense, and hybrid retrieval with nDCG@10, MRR@10, and Recall@20.
-- `scripts/run_eval.py` supports custom query, qrels, metrics, and comparison output paths.
+- `scripts/run_eval.py` supports custom query, qrels, metrics, comparison output paths, and endpoint selection (`/search` or `/search-content`).
 - Latest Gutenberg evaluation artifacts:
   - `reports/gutenberg_metrics.json`
   - `reports/gutenberg_comparison.md`
 - Latest Gutenberg prototype results:
-  - BM25: nDCG@10 0.7492, MRR@10 1.0000, Recall@20 0.7303
-  - Dense: nDCG@10 0.8040, MRR@10 1.0000, Recall@20 0.7830
-  - Hybrid: nDCG@10 0.8082, MRR@10 1.0000, Recall@20 1.0000
+  - BM25: nDCG@10 0.1958, MRR@10 0.4345, Recall@20 0.3010
+  - Dense: nDCG@10 0.4261, MRR@10 0.7470, Recall@20 0.5799
+  - Hybrid: nDCG@10 0.4221, MRR@10 0.7304, Recall@20 0.5058
 - `scripts/load_test.py` runs lightweight concurrent local load tests.
 - `reports/load_test_results.md` contains local prototype load-test evidence.
 
@@ -73,34 +75,23 @@ The deployed demo is available at `http://167.172.88.176:8080/`. The active demo
 - GitHub Actions runs backend tests and frontend lint/build checks.
 - Main-branch deploy uses SSH to a VPS and runs Docker Compose.
 - Production compose serves the frontend on port `8080` because port `80` was already in use on the VPS.
+- Deployment builds both `storyseek_works` and `storyseek_chunks` before starting the API/frontend.
 - Deployment pulls Git LFS data when `git-lfs` is available on the server.
 
 ## Current Progress Estimate
 
-- Local MVP retrieval system: about 80-85 percent complete.
-- Full course deliverable: about 65-70 percent complete.
+- Local MVP retrieval system: about 85-90 percent complete.
+- Full course deliverable: about 70-75 percent complete.
 
-The main missing pieces are text-cleaning and passage/chunk indexing, stronger relevance evidence, final deployment hardening, and demo/video walkthrough polish.
+The main missing pieces are final load-test evidence, deploy-time chunk indexing optimization, and demo/video walkthrough polish.
 
 ## Recommended Next Commits
 
-1. Prepare text cleaning before chunking:
-   - remove Project Gutenberg header/footer/license boilerplate from raw text
-   - normalize whitespace
-   - keep the cleaner as a pure tested utility
-   - do not change indexing behavior until the cleaner is verified
-
-2. Add passage/chunk indexing behind a small, reversible path:
-   - create chunk records from cleaned Gutenberg text
-   - preserve work-level search behavior until passage retrieval is validated
-   - document how work-level and passage-level indexes relate
-
-3. Improve evaluation evidence:
+1. Improve evaluation evidence:
    - expand qrels with a defensible judged subset
    - document that current Gutenberg qrels are LLM-assisted pooled judgments, not official human annotations
-   - rerun BM25, dense, and hybrid after any passage-indexing change
 
-4. Final course polish:
+2. Final course polish:
    - write demo video script
    - add deployment notes and rollback notes
    - refresh load-test evidence after the final indexing shape is stable
@@ -108,8 +99,8 @@ The main missing pieces are text-cleaning and passage/chunk indexing, stronger r
 ## Known Limits
 
 - The original corpus is synthetic and intentionally metadata-rich, but the active demo corpus now uses Project Gutenberg-derived works.
-- Current search indexes work-level metadata and summaries. Passage/chunk retrieval is not implemented yet.
+- Current frontend search uses passage chunks grouped back to work-level results, but the qrels are still small and LLM-assisted.
 - Current Gutenberg qrels are LLM-assisted pooled judgments. They are useful prototype evidence, not an official human-labeled benchmark.
-- The raw Gutenberg text still needs boilerplate cleanup before chunking.
+- Chunk generation uses rule-based boilerplate filtering and sentence windows. It is good enough for prototype retrieval, but not a scholarly text edition pipeline.
 - OpenSearch runs as a single node locally; production scale is described as an architecture path, not claimed as proven capacity.
 - Dense query embedding runs inside the API process for the MVP. A production version should move this to a dedicated inference service or shared cache if traffic grows.
